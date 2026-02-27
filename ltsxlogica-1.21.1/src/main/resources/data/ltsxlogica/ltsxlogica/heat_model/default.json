@@ -1,0 +1,964 @@
+{
+  "air_props": {
+    "conductivity_k": 0.03,
+    "capacity_c": 1.0,
+    "generation_q": 0.0,
+    "relax_r": 0.015,
+    "convective_h": 0.06,
+    "update_period_ticks": 1,
+    "air_like": true
+  },
+  "default_props": {
+    "conductivity_k": 1.1,
+    "capacity_c": 14.0,
+    "generation_q": 0.0,
+    "relax_r": 0.002,
+    "convective_h": 0.0,
+    "update_period_ticks": 4,
+    "air_like": false
+  },
+  "heat_props_rules": [
+    {
+      "match": {
+        "block": "minecraft:fire",
+        "soul_base": true
+      },
+      "props": {
+        "conductivity_k": 0.1,
+        "capacity_c": 1.4,
+        "generation_q": 0.0,
+        "relax_r": 0.01,
+        "target_celsius": 650.0,
+        "source_strength_s": 0.2,
+        "convective_h": 0.08,
+        "update_period_ticks": 1,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:soul_fire"
+      },
+      "props": {
+        "conductivity_k": 0.1,
+        "capacity_c": 1.4,
+        "generation_q": 0.0,
+        "relax_r": 0.01,
+        "target_celsius": 650.0,
+        "source_strength_s": 0.2,
+        "convective_h": 0.08,
+        "update_period_ticks": 1,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:fire"
+      },
+      "props": {
+        "conductivity_k": 0.12,
+        "capacity_c": 1.2,
+        "generation_q": 0.0,
+        "relax_r": 0.01,
+        "target_celsius": 900.0,
+        "source_strength_s": 0.25,
+        "convective_h": 0.1,
+        "update_period_ticks": 1,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:magma_block"
+      },
+      "props": {
+        "conductivity_k": 1.6,
+        "capacity_c": 18.0,
+        "generation_q": 0.0,
+        "relax_r": 0.002,
+        "target_celsius": 1300.0,
+        "source_strength_s": 0.18,
+        "convective_h": 0.04,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:soul_campfire",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 0.3,
+        "capacity_c": 8.5,
+        "generation_q": 0.0,
+        "relax_r": 0.006,
+        "target_celsius": 360.0,
+        "source_strength_s": 0.09,
+        "convective_h": 0.04,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:campfire",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 0.35,
+        "capacity_c": 8.0,
+        "generation_q": 0.0,
+        "relax_r": 0.006,
+        "target_celsius": 520.0,
+        "source_strength_s": 0.1,
+        "convective_h": 0.05,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "tag": "minecraft:campfires",
+        "lit": false
+      },
+      "props": {
+        "conductivity_k": 0.9,
+        "capacity_c": 16.0,
+        "generation_q": 0.0,
+        "relax_r": 0.003,
+        "convective_h": 0.01,
+        "update_period_ticks": 4,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:redstone_torch",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 0.07,
+        "capacity_c": 2.2,
+        "generation_q": 0.0,
+        "relax_r": 0.012,
+        "target_celsius": 180.0,
+        "source_strength_s": 0.08,
+        "convective_h": 0.04,
+        "update_period_ticks": 2,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:redstone_wall_torch",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 0.07,
+        "capacity_c": 2.2,
+        "generation_q": 0.0,
+        "relax_r": 0.012,
+        "target_celsius": 180.0,
+        "source_strength_s": 0.08,
+        "convective_h": 0.04,
+        "update_period_ticks": 2,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:redstone_torch",
+        "lit": false
+      },
+      "props": {
+        "conductivity_k": 0.2,
+        "capacity_c": 6.0,
+        "generation_q": 0.0,
+        "relax_r": 0.004,
+        "convective_h": 0.01,
+        "update_period_ticks": 4,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:redstone_wall_torch",
+        "lit": false
+      },
+      "props": {
+        "conductivity_k": 0.2,
+        "capacity_c": 6.0,
+        "generation_q": 0.0,
+        "relax_r": 0.004,
+        "convective_h": 0.01,
+        "update_period_ticks": 4,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:torch"
+      },
+      "props": {
+        "conductivity_k": 0.08,
+        "capacity_c": 2.0,
+        "generation_q": 0.0,
+        "relax_r": 0.012,
+        "target_celsius": 260.0,
+        "source_strength_s": 0.1,
+        "convective_h": 0.05,
+        "update_period_ticks": 2,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:wall_torch"
+      },
+      "props": {
+        "conductivity_k": 0.08,
+        "capacity_c": 2.0,
+        "generation_q": 0.0,
+        "relax_r": 0.012,
+        "target_celsius": 260.0,
+        "source_strength_s": 0.1,
+        "convective_h": 0.05,
+        "update_period_ticks": 2,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:furnace",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 1.3,
+        "capacity_c": 16.0,
+        "generation_q": 64.0,
+        "relax_r": 0.004,
+        "target_celsius": 380.0,
+        "source_strength_s": 0.08,
+        "convective_h": 0.02,
+        "update_period_ticks": 2,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:blast_furnace",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 1.3,
+        "capacity_c": 16.0,
+        "generation_q": 64.0,
+        "relax_r": 0.004,
+        "target_celsius": 380.0,
+        "source_strength_s": 0.08,
+        "convective_h": 0.02,
+        "update_period_ticks": 2,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "minecraft:smoker",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 1.3,
+        "capacity_c": 16.0,
+        "generation_q": 64.0,
+        "relax_r": 0.004,
+        "target_celsius": 380.0,
+        "source_strength_s": 0.08,
+        "convective_h": 0.02,
+        "update_period_ticks": 2,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "tag": "ltsxlogica:burnable",
+        "lit": true
+      },
+      "props": {
+        "conductivity_k": 0.09,
+        "capacity_c": 2.4,
+        "generation_q": 0.0,
+        "relax_r": 0.01,
+        "target_celsius": 220.0,
+        "source_strength_s": 0.06,
+        "convective_h": 0.04,
+        "update_period_ticks": 2,
+        "air_like": true
+      }
+    },
+    {
+      "match": {
+        "tag": "ltsxlogica:thermal_ice"
+      },
+      "props": {
+        "conductivity_k": 1.9,
+        "capacity_c": 10.0,
+        "generation_q": 0.0,
+        "relax_r": 0.004,
+        "target_celsius": -5.0,
+        "source_strength_s": 0.05,
+        "convective_h": 0.02,
+        "update_period_ticks": 3,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "tag": "ltsxlogica:thermal_stone"
+      },
+      "props": {
+        "conductivity_k": 2.2,
+        "capacity_c": 20.0,
+        "generation_q": 0.0,
+        "relax_r": 0.0015,
+        "convective_h": 0.0,
+        "update_period_ticks": 4,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "tag": "ltsxlogica:thermal_wood"
+      },
+      "props": {
+        "conductivity_k": 0.25,
+        "capacity_c": 11.0,
+        "generation_q": 0.0,
+        "relax_r": 0.003,
+        "convective_h": 0.01,
+        "update_period_ticks": 4,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "tag": "ltsxlogica:thermal_leaves"
+      },
+      "props": {
+        "conductivity_k": 0.16,
+        "capacity_c": 4.0,
+        "generation_q": 0.0,
+        "relax_r": 0.008,
+        "convective_h": 0.02,
+        "update_period_ticks": 2,
+        "air_like": false
+      }
+    }
+  ],
+  "liquids": {
+    "default_liquid": {
+      "heat_props": {
+        "conductivity_k": 0.9,
+        "capacity_c": 42.0,
+        "generation_q": 0.0,
+        "relax_r": 0.0035,
+        "convective_h": 0.1,
+        "update_period_ticks": 2,
+        "air_like": false
+      },
+      "surface_scan_steps": 24,
+      "inertia_evict_interval_ticks": 200,
+      "inertia_evict_idle_ticks": 1800,
+      "base_cool_offset_celsius": -3.2,
+      "surface_solar_max_celsius": 6.0,
+      "deep_cool_per_block_celsius": 0.18,
+      "deep_cool_max_celsius": 16.0,
+      "heat_source_max_celsius": 18.0,
+      "target_min_celsius": -24.0,
+      "target_max_celsius": 22.0,
+      "inertia_warm_rate": 0.012,
+      "inertia_cool_rate": 0.02,
+      "source_rules": [
+        {
+          "match": {
+            "block": "minecraft:lava"
+          },
+          "contribution_celsius": 12.0
+        },
+        {
+          "match": {
+            "block": "minecraft:magma_block"
+          },
+          "contribution_celsius": 8.0
+        },
+        {
+          "match": {
+            "block": "minecraft:fire"
+          },
+          "contribution_celsius": 6.0
+        },
+        {
+          "match": {
+            "block": "minecraft:soul_fire"
+          },
+          "contribution_celsius": 4.5
+        },
+        {
+          "match": {
+            "block": "minecraft:campfire",
+            "lit": true
+          },
+          "contribution_celsius": 5.0
+        },
+        {
+          "match": {
+            "block": "minecraft:soul_campfire",
+            "lit": true
+          },
+          "contribution_celsius": 4.0
+        },
+        {
+          "match": {
+            "block": "minecraft:furnace",
+            "lit": true
+          },
+          "contribution_celsius": 3.5
+        },
+        {
+          "match": {
+            "block": "minecraft:blast_furnace",
+            "lit": true
+          },
+          "contribution_celsius": 3.5
+        },
+        {
+          "match": {
+            "block": "minecraft:smoker",
+            "lit": true
+          },
+          "contribution_celsius": 3.5
+        },
+        {
+          "match": {
+            "block": "minecraft:redstone_torch",
+            "lit": true
+          },
+          "contribution_celsius": 1.8
+        },
+        {
+          "match": {
+            "block": "minecraft:redstone_wall_torch",
+            "lit": true
+          },
+          "contribution_celsius": 1.8
+        },
+        {
+          "match": {
+            "block": "minecraft:torch"
+          },
+          "contribution_celsius": 1.8
+        },
+        {
+          "match": {
+            "block": "minecraft:wall_torch"
+          },
+          "contribution_celsius": 1.8
+        }
+      ]
+    },
+    "entries": [
+      {
+        "match": {
+          "tag": "minecraft:lava"
+        },
+        "profile": {
+          "heat_props": {
+            "conductivity_k": 1.6,
+            "capacity_c": 18.0,
+            "generation_q": 0.0,
+            "relax_r": 0.002,
+            "target_celsius": 1300.0,
+            "source_strength_s": 0.18,
+            "convective_h": 0.04,
+            "update_period_ticks": 1,
+            "air_like": false
+          },
+          "surface_scan_steps": 20,
+          "inertia_evict_interval_ticks": 200,
+          "inertia_evict_idle_ticks": 1800,
+          "base_cool_offset_celsius": 26.0,
+          "surface_solar_max_celsius": 2.0,
+          "deep_cool_per_block_celsius": 0.04,
+          "deep_cool_max_celsius": 5.0,
+          "heat_source_max_celsius": 24.0,
+          "target_min_celsius": 8.0,
+          "target_max_celsius": 120.0,
+          "inertia_warm_rate": 0.06,
+          "inertia_cool_rate": 0.015,
+          "source_rules": [
+            {
+              "match": {
+                "block": "minecraft:magma_block"
+              },
+              "contribution_celsius": 8.0
+            },
+            {
+              "match": {
+                "block": "minecraft:fire"
+              },
+              "contribution_celsius": 6.0
+            },
+            {
+              "match": {
+                "block": "minecraft:soul_fire"
+              },
+              "contribution_celsius": 4.5
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "biomes": {
+    "default_biome": {
+      "ambient_celsius": 18.0
+    },
+    "append_entries": false,
+    "entries": [
+      {
+        "match": {
+          "biome": "minecraft:badlands"
+        },
+        "ambient_celsius": 33.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:bamboo_jungle"
+        },
+        "ambient_celsius": 27.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:basalt_deltas"
+        },
+        "ambient_celsius": 72.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:beach"
+        },
+        "ambient_celsius": 22.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:birch_forest"
+        },
+        "ambient_celsius": 16.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:cherry_grove"
+        },
+        "ambient_celsius": 11.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:cold_ocean"
+        },
+        "ambient_celsius": 8.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:crimson_forest"
+        },
+        "ambient_celsius": 58.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:dark_forest"
+        },
+        "ambient_celsius": 16.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:deep_cold_ocean"
+        },
+        "ambient_celsius": 6.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:deep_dark"
+        },
+        "ambient_celsius": 9.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:deep_frozen_ocean"
+        },
+        "ambient_celsius": -9.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:deep_lukewarm_ocean"
+        },
+        "ambient_celsius": 19.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:deep_ocean"
+        },
+        "ambient_celsius": 10.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:desert"
+        },
+        "ambient_celsius": 35.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:dripstone_caves"
+        },
+        "ambient_celsius": 14.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:end_barrens"
+        },
+        "ambient_celsius": -9.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:end_highlands"
+        },
+        "ambient_celsius": -8.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:end_midlands"
+        },
+        "ambient_celsius": -7.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:eroded_badlands"
+        },
+        "ambient_celsius": 34.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:flower_forest"
+        },
+        "ambient_celsius": 17.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:forest"
+        },
+        "ambient_celsius": 17.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:frozen_ocean"
+        },
+        "ambient_celsius": -7.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:frozen_peaks"
+        },
+        "ambient_celsius": -20.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:frozen_river"
+        },
+        "ambient_celsius": -6.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:grove"
+        },
+        "ambient_celsius": -8.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:ice_spikes"
+        },
+        "ambient_celsius": -12.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:jagged_peaks"
+        },
+        "ambient_celsius": -18.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:jungle"
+        },
+        "ambient_celsius": 28.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:lukewarm_ocean"
+        },
+        "ambient_celsius": 22.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:lush_caves"
+        },
+        "ambient_celsius": 17.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:mangrove_swamp"
+        },
+        "ambient_celsius": 26.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:meadow"
+        },
+        "ambient_celsius": 12.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:mushroom_fields"
+        },
+        "ambient_celsius": 18.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:nether_wastes"
+        },
+        "ambient_celsius": 65.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:ocean"
+        },
+        "ambient_celsius": 14.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:old_growth_birch_forest"
+        },
+        "ambient_celsius": 15.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:old_growth_pine_taiga"
+        },
+        "ambient_celsius": 8.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:old_growth_spruce_taiga"
+        },
+        "ambient_celsius": 7.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:plains"
+        },
+        "ambient_celsius": 18.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:river"
+        },
+        "ambient_celsius": 14.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:savanna"
+        },
+        "ambient_celsius": 29.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:savanna_plateau"
+        },
+        "ambient_celsius": 27.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:small_end_islands"
+        },
+        "ambient_celsius": -10.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:snowy_beach"
+        },
+        "ambient_celsius": -3.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:snowy_plains"
+        },
+        "ambient_celsius": -5.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:snowy_slopes"
+        },
+        "ambient_celsius": -12.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:snowy_taiga"
+        },
+        "ambient_celsius": -6.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:soul_sand_valley"
+        },
+        "ambient_celsius": 45.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:sparse_jungle"
+        },
+        "ambient_celsius": 25.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:stony_peaks"
+        },
+        "ambient_celsius": 8.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:stony_shore"
+        },
+        "ambient_celsius": 16.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:sunflower_plains"
+        },
+        "ambient_celsius": 19.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:swamp"
+        },
+        "ambient_celsius": 24.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:taiga"
+        },
+        "ambient_celsius": 9.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:the_end"
+        },
+        "ambient_celsius": -5.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:the_void"
+        },
+        "ambient_celsius": -20.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:warm_ocean"
+        },
+        "ambient_celsius": 28.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:warped_forest"
+        },
+        "ambient_celsius": 42.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:windswept_forest"
+        },
+        "ambient_celsius": 11.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:windswept_gravelly_hills"
+        },
+        "ambient_celsius": 9.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:windswept_hills"
+        },
+        "ambient_celsius": 10.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:windswept_savanna"
+        },
+        "ambient_celsius": 25.0
+      },
+      {
+        "match": {
+          "biome": "minecraft:wooded_badlands"
+        },
+        "ambient_celsius": 30.0
+      },
+      {
+        "match": {
+          "tag": "minecraft:is_ocean"
+        },
+        "ambient_celsius": 14.0
+      },
+      {
+        "match": {
+          "tag": "minecraft:is_nether"
+        },
+        "ambient_celsius": 55.0
+      },
+      {
+        "match": {
+          "tag": "minecraft:is_end"
+        },
+        "ambient_celsius": -90.0
+      }
+    ]
+  },
+  "ignition": {
+    "air_threshold_celsius": 280.0,
+    "respect_fire_tick_gamerule": true,
+    "use_ignitable_tag": true,
+    "use_vanilla_flammable": true,
+    "result_block": "minecraft:fire",
+    "prefer_soul_fire_on_soul_base": true
+  },
+  "phase_change": {
+    "require_pcm_tag": true,
+    "rules": [
+      {
+        "match": {
+          "block": "minecraft:ice"
+        },
+        "direction": "above",
+        "threshold_celsius": 1.0,
+        "result_block": "minecraft:water",
+        "ultrawarm_result_block": "minecraft:air",
+        "require_source_fluid": false
+      },
+      {
+        "match": {
+          "block": "minecraft:water"
+        },
+        "direction": "below",
+        "threshold_celsius": -1.0,
+        "result_block": "minecraft:ice",
+        "require_source_fluid": true
+      }
+    ]
+  }
+}

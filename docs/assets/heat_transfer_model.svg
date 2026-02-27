@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <defs>
+    <style>
+      .title { font: 700 34px "Segoe UI", Arial, sans-serif; fill: #1f2937; }
+      .subtitle { font: 600 20px "Segoe UI", Arial, sans-serif; fill: #374151; }
+      .box { fill: #f8fafc; stroke: #334155; stroke-width: 2; rx: 14; ry: 14; }
+      .box2 { fill: #eef6ff; stroke: #1d4ed8; stroke-width: 2; rx: 14; ry: 14; }
+      .box3 { fill: #f0fdf4; stroke: #15803d; stroke-width: 2; rx: 14; ry: 14; }
+      .box4 { fill: #fff7ed; stroke: #c2410c; stroke-width: 2; rx: 14; ry: 14; }
+      .txt { font: 15px "Consolas", "Courier New", monospace; fill: #111827; }
+      .txt2 { font: 14px "Consolas", "Courier New", monospace; fill: #111827; }
+      .head { font: 700 18px "Segoe UI", Arial, sans-serif; fill: #0f172a; }
+      .arrow { stroke: #334155; stroke-width: 2.6; fill: none; marker-end: url(#arrowHead); }
+      .arrow2 { stroke: #1d4ed8; stroke-width: 2.4; fill: none; marker-end: url(#arrowHeadBlue); }
+      .arrow3 { stroke: #15803d; stroke-width: 2.4; fill: none; marker-end: url(#arrowHeadGreen); }
+    </style>
+    <marker id="arrowHead" markerWidth="12" markerHeight="9" refX="10" refY="4.5" orient="auto">
+      <polygon points="0,0 12,4.5 0,9" fill="#334155"/>
+    </marker>
+    <marker id="arrowHeadBlue" markerWidth="12" markerHeight="9" refX="10" refY="4.5" orient="auto">
+      <polygon points="0,0 12,4.5 0,9" fill="#1d4ed8"/>
+    </marker>
+    <marker id="arrowHeadGreen" markerWidth="12" markerHeight="9" refX="10" refY="4.5" orient="auto">
+      <polygon points="0,0 12,4.5 0,9" fill="#15803d"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1600" height="980" fill="#ffffff"/>
+  <text x="38" y="54" class="title">LOGIC_A Heat Module: Datapack-Driven Thermodynamic Transfer Model</text>
+  <text x="38" y="84" class="subtitle">Sparse section solver + ambient field + liquid profile + ignition/phase thresholds</text>
+
+  <rect x="40" y="120" width="360" height="180" class="box"/>
+  <text x="60" y="150" class="head">Datapack Inputs</text>
+  <text x="60" y="178" class="txt">data/*/ltsxlogica/heat_model/*.json</text>
+  <text x="60" y="202" class="txt2">air_props, default_props, heat_props_rules</text>
+  <text x="60" y="224" class="txt2">liquids(default_liquid + entries)</text>
+  <text x="60" y="246" class="txt2">biomes(default_biome + entries)</text>
+  <text x="60" y="268" class="txt2">ignition, phase_change</text>
+
+  <rect x="460" y="120" width="360" height="180" class="box"/>
+  <text x="480" y="150" class="head">Reload + Registry</text>
+  <text x="480" y="178" class="txt2">HeatDataReloadListener</text>
+  <text x="480" y="200" class="txt2">sorted merge + append semantics</text>
+  <text x="480" y="224" class="txt2">HeatDataRegistry(model, revision)</text>
+  <text x="480" y="248" class="txt2">hot reload without restart</text>
+
+  <rect x="880" y="120" width="680" height="180" class="box2"/>
+  <text x="900" y="150" class="head">Per-Tick Runtime in HeatManager</text>
+  <text x="900" y="178" class="txt2">active section queue + cell budget + dirty propagation</text>
+  <text x="900" y="202" class="txt2">T_comp = T + dT_cond + dT_gen + dT_env + dT_src + dT_conv + dT_liq</text>
+  <text x="900" y="224" class="txt2">T_next = T + alpha * (T_comp - T),  alpha = 0.35</text>
+  <text x="900" y="246" class="txt2">fixed-point scale: T_fixed = round(16 * T_C)</text>
+  <text x="900" y="268" class="txt2">section eviction, persistence snapshot, chunk bootstrap</text>
+
+  <rect x="40" y="360" width="500" height="250" class="box3"/>
+  <text x="60" y="392" class="head">Ambient Field Synthesis</text>
+  <text x="60" y="420" class="txt2">T_env = T_biome + G_height + Q_solar + Q_greenhouse</text>
+  <text x="60" y="442" class="txt2">      + Q_storage + Q_material + Q_liquid</text>
+  <text x="60" y="468" class="txt2">T_biome: trilinear blend over 8 quart corners</text>
+  <text x="60" y="490" class="txt2">Q_solar: diurnal sinusoid * weather attenuation</text>
+  <text x="60" y="512" class="txt2">Q_storage: day/night ground thermal inertia</text>
+  <text x="60" y="534" class="txt2">Q_liquid: liquid profile offset with warm/cool inertia</text>
+  <text x="60" y="558" class="txt2">optional seasonal offset via Ecliptic bridge</text>
+
+  <rect x="580" y="360" width="520" height="250" class="box4"/>
+  <text x="600" y="392" class="head">Liquid Heat Coupling</text>
+  <text x="600" y="420" class="txt2">S_eff(d): d=1 -> S0, d=2 -> 0.45*S0, d>=3 -> 0</text>
+  <text x="600" y="442" class="txt2">dT_liq = dt * min(S_sum, S_max) / C_liquid</text>
+  <text x="600" y="466" class="txt2">O_target = O_base + O_climate + O_surface + O_deep + O_source</text>
+  <text x="600" y="488" class="txt2">O_next = O + rho * (O_target - O)</text>
+  <text x="600" y="512" class="txt2">default_liquid + fluid-tag entries (e.g. lava, mod liquids)</text>
+  <text x="600" y="536" class="txt2">same framework applies to chocolate, oil, coolant, etc.</text>
+
+  <rect x="1140" y="360" width="420" height="250" class="box"/>
+  <text x="1160" y="392" class="head">Threshold Subsystems</text>
+  <text x="1160" y="420" class="txt2">PhaseChangeManager:</text>
+  <text x="1160" y="442" class="txt2">ABOVE: old &lt;= th and new &gt; th</text>
+  <text x="1160" y="464" class="txt2">BELOW: old &gt;= th and new &lt; th</text>
+  <text x="1160" y="492" class="txt2">IgnitionManager:</text>
+  <text x="1160" y="514" class="txt2">T_air &gt;= ignition threshold</text>
+  <text x="1160" y="536" class="txt2">and adjacent ignitable fuel exists</text>
+  <text x="1160" y="558" class="txt2">optional soul-fire preference</text>
+
+  <rect x="40" y="670" width="1520" height="250" class="box2"/>
+  <text x="60" y="704" class="head">Cell-Level Thermodynamic Terms</text>
+  <text x="60" y="736" class="txt2">dT_cond = dt*(1/C_i)*sum_j[min(k_i,k_j)*(T_j - T_i)]</text>
+  <text x="60" y="760" class="txt2">dT_gen  = dt*(q_i/C_i)</text>
+  <text x="60" y="784" class="txt2">dT_env  = dt*r_i*(T_env - T_i)</text>
+  <text x="60" y="808" class="txt2">dT_src  = dt*s_i*(T*_i - T_i)   (if target exists)</text>
+  <text x="60" y="832" class="txt2">dT_conv = dt*h_i*n_air*(T_env - T_i)</text>
+  <text x="60" y="856" class="txt2">dT_liq  = dt*min(S_sum, S_max)/C_i   (liquid cells)</text>
+  <text x="60" y="886" class="txt2">T_next  = clamp(T + alpha*(T_comp - T), Tmin, Tmax)</text>
+
+  <path d="M400,210 L460,210" class="arrow"/>
+  <path d="M820,210 L880,210" class="arrow2"/>
+  <path d="M1120,300 L1120,360" class="arrow3"/>
+  <path d="M980,300 L840,360" class="arrow2"/>
+  <path d="M900,300 L300,360" class="arrow2"/>
+  <path d="M770,610 L770,670" class="arrow"/>
+  <path d="M1360,610 L1360,670" class="arrow"/>
+</svg>
+

@@ -1,0 +1,73 @@
+plugins {
+    id 'base'
+}
+
+description = 'LTSX Neo workspace (ModDevGradle modules)'
+
+// Runtime host module for integrated dev runs (can be overridden by -PdevHost=:someProject)
+def devHostPath = (findProperty('devHost') ?: ':ltsxlogica').toString()
+def devHostProject = project(devHostPath)
+
+def modProjects = { ->
+    subprojects.findAll {
+        it.plugins.hasPlugin('net.neoforged.moddev') || it.plugins.hasPlugin('net.neoforged.gradle.userdev')
+    }
+}
+
+def allModProjectsExceptHost = { ->
+    modProjects().findAll { it.path != devHostProject.path }
+}
+
+def integratedRunSelectors = ['runClient', 'runServer', 'runGameTestServer', ':runClient', ':runServer', ':runGameTestServer']
+def integratedRunRequested = gradle.startParameter.taskNames.any { integratedRunSelectors.contains(it) }
+
+gradle.projectsEvaluated {
+    if (integratedRunRequested) {
+        allModProjectsExceptHost().each { p ->
+            ['runClient', 'runServer', 'runGameTestServer'].each { runTaskName ->
+                p.tasks.matching { it.name == runTaskName }.configureEach {
+                    enabled = false
+                }
+            }
+        }
+    }
+
+    // Make dev host run tasks include every other configured mod module at runtime.
+    // This enables one client/server/gametest process with all mods loaded together.
+    devHostProject.dependencies {
+        allModProjectsExceptHost().each { p ->
+            add('localRuntime', project(p.path))
+        }
+    }
+}
+
+tasks.register('buildAllMods') {
+    group = 'build'
+    description = 'Build all configured mod subprojects'
+    dependsOn(modProjects().collect { "${it.path}:build" })
+}
+
+tasks.register('testAllMods') {
+    group = 'verification'
+    description = 'Run tests for all configured mod subprojects'
+    dependsOn(modProjects().collect { "${it.path}:test" })
+}
+
+tasks.register('runClient') {
+    group = 'run'
+    description = "Run integrated client from ${devHostPath} with all workspace mods"
+    dependsOn(':buildAllMods', "${devHostPath}:runClient")
+}
+
+tasks.register('runServer') {
+    group = 'run'
+    description = "Run integrated server from ${devHostPath} with all workspace mods"
+    dependsOn(':buildAllMods', "${devHostPath}:runServer")
+}
+
+tasks.register('runGameTestServer') {
+    group = 'verification'
+    description = "Run integrated gametest server from ${devHostPath} with all workspace mods"
+    dependsOn(':buildAllMods', "${devHostPath}:runGameTestServer")
+}
+

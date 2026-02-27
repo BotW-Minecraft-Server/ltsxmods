@@ -1,0 +1,13 @@
+{
+  "itemGroup.ltsxcore": "Example Mod Tab",
+  "block.ltsxcore.example_block": "Example Block",
+  "item.ltsxcore.example_item": "Example Item",
+
+  "ltsxcore.configuration.title": "LTSX Core Configs",
+  "ltsxcore.configuration.section.ltsxcore.common.toml": "LTSX Core Configs",
+  "ltsxcore.configuration.section.ltsxcore.common.toml.title": "LTSX Core Configs",
+  "ltsxcore.configuration.items": "Item List",
+  "ltsxcore.configuration.logDirtBlock": "Log Dirt Block",
+  "ltsxcore.configuration.magicNumberIntroduction": "Magic Number Text",
+  "ltsxcore.configuration.magicNumber": "Magic Number"
+}

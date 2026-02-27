@@ -1,0 +1,13 @@
+{
+  "itemGroup.ltsxlogica": "Example Mod Tab",
+  "block.ltsxlogica.example_block": "Example Block",
+  "item.ltsxlogica.example_item": "Example Item",
+
+  "ltsxlogica.configuration.title": "LTSX Logic A Configs",
+  "ltsxlogica.configuration.section.ltsxlogica.common.toml": "LTSX Logic A Configs",
+  "ltsxlogica.configuration.section.ltsxlogica.common.toml.title": "LTSX Logic A Configs",
+  "ltsxlogica.configuration.items": "Item List",
+  "ltsxlogica.configuration.logDirtBlock": "Log Dirt Block",
+  "ltsxlogica.configuration.magicNumberIntroduction": "Magic Number Text",
+  "ltsxlogica.configuration.magicNumber": "Magic Number"
+}

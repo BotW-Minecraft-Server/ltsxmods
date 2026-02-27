@@ -1,0 +1,15 @@
+{
+  "replace": false,
+  "values": [
+    "#minecraft:logs",
+    "#minecraft:planks",
+    "#minecraft:leaves",
+    "#minecraft:wool",
+    "minecraft:tnt",
+    "minecraft:bookshelf",
+    "minecraft:hay_block",
+    "minecraft:dried_kelp_block",
+    "minecraft:bamboo_block",
+    "minecraft:scaffolding"
+  ]
+}

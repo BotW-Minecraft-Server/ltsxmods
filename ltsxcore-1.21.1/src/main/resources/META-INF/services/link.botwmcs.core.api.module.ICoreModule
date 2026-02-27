@@ -1,0 +1,3 @@
+# ServiceLoader provider list template for module developers.
+# Put one fully-qualified implementing class name per line, e.g.:
+# com.example.myindustry.module.IndustryCoreModule

@@ -1,0 +1,24 @@
+pluginManagement {
+    repositories {
+        mavenLocal()
+        maven { url = 'https://maven.neoforged.net/releases' }
+        gradlePluginPortal()
+    }
+}
+
+plugins {
+    id 'org.gradle.toolchains.foojay-resolver-convention' version '1.0.0'
+}
+
+rootProject.name = 'ltsxmods'
+
+include(':ltsxcore')
+project(':ltsxcore').projectDir = file('ltsxcore-1.21.1')
+
+include(':ltsxlogica')
+project(':ltsxlogica').projectDir = file('ltsxlogica-1.21.1')
+
+include(':eclipticseasons')
+project(':eclipticseasons').projectDir = file('eclipticseasons-1.21.1')
+project(':eclipticseasons').buildFileName = 'workspace.build.gradle'
+
