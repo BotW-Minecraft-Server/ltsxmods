@@ -1,0 +1,4 @@
+[submodule "eclipticseasons-1.21.1"]
+	path = eclipticseasons-1.21.1
+	url = https://github.com/BotW-Minecraft-Server/Ecliptic-Seasons.git
+	branch = botwmcs/workspace-neoforge-1.21.x
