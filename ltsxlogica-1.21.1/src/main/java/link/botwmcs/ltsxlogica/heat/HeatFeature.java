@@ -37,7 +37,7 @@ public final class HeatFeature {
         if (!INITIALIZED.compareAndSet(false, true)) {
             return;
         }
-        modBus.addListener(HeatNetworking::onRegisterPayloadHandlers);
+        HeatNetworking.registerCorePayloads();
 
         forgeBus.addListener(HeatFeature::onLevelTickPost);
         forgeBus.addListener(HeatFeature::onLevelSave);

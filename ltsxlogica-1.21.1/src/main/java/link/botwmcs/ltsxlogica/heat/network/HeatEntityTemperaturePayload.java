@@ -1,17 +1,18 @@
 package link.botwmcs.ltsxlogica.heat.network;
 
+import link.botwmcs.core.net.CorePacketPayload;
+import link.botwmcs.core.net.CorePayloadType;
 import link.botwmcs.ltsxlogica.LTSXLogicA;
 import net.minecraft.network.RegistryFriendlyByteBuf;
 import net.minecraft.network.codec.ByteBufCodecs;
 import net.minecraft.network.codec.StreamCodec;
-import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 /**
  * Clientbound payload: current effective entity temperature (fixed-point, scale=16).
  */
-public record HeatEntityTemperaturePayload(int tempFixed) implements CustomPacketPayload {
-    public static final Type<HeatEntityTemperaturePayload> TYPE = new Type<>(
+public record HeatEntityTemperaturePayload(int tempFixed) implements CorePacketPayload {
+    public static final CorePayloadType<HeatEntityTemperaturePayload> TYPE = new CorePayloadType<>(
             ResourceLocation.fromNamespaceAndPath(LTSXLogicA.MODID, "heat_entity_temperature")
     );
 
@@ -22,8 +23,7 @@ public record HeatEntityTemperaturePayload(int tempFixed) implements CustomPacke
     );
 
     @Override
-    public Type<HeatEntityTemperaturePayload> type() {
+    public CorePayloadType<HeatEntityTemperaturePayload> type() {
         return TYPE;
     }
 }
-

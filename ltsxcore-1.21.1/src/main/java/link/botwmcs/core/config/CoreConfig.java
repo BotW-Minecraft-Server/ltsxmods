@@ -1,7 +1,11 @@
 package link.botwmcs.core.config;
 
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import link.botwmcs.core.util.CoreKeys;
+import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModLoadingContext;
@@ -25,6 +29,42 @@ public final class CoreConfig {
     public static final ModConfigSpec.IntValue SCHEDULER_BUDGET_MICROS = BUILDER
             .comment("Per-tick task scheduler budget in microseconds.")
             .defineInRange("schedulerBudgetMicros", 1_000, 0, 200_000);
+
+    public static final ModConfigSpec.BooleanValue NEB_COMPATIBLE_MODE = BUILDER
+            .comment("Enable NEB compatibility mode. When enabled, nebBlackList packets bypass NEB aggregation/prefix.")
+            .define("nebCompatibleMode", false);
+
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> NEB_BLACKLIST = BUILDER
+            .comment("NEB compatibility blacklist. Packet ids in this list bypass NEB.")
+            .defineListAllowEmpty(
+                    List.of("nebBlackList"),
+                    List.of(
+                            "minecraft:command_suggestion",
+                            "minecraft:command_suggestions",
+                            "minecraft:commands",
+                            "minecraft:chat_command",
+                            "minecraft:chat_command_signed",
+                            "minecraft:player_info_update",
+                            "minecraft:player_info_remove",
+                            "minecraft:register",
+                            "minecraft:unregister",
+                            "velocity:player_info",
+                            "velocity:modern_forwarding"
+                    ),
+                    CoreConfig::isPacketTypeEntry
+            );
+
+    public static final ModConfigSpec.IntValue NEB_CONTEXT_LEVEL = BUILDER
+            .comment("NEB zstd context window log2 size, range [21,25] => [2MB,32MB], default 23 (8MB).")
+            .defineInRange("nebContextLevel", 23, 21, 25);
+
+    public static final ModConfigSpec.IntValue NEB_FLUSH_PERIOD_MS = BUILDER
+            .comment("NEB aggregation flush period in milliseconds.")
+            .defineInRange("nebFlushPeriodMs", 20, 1, 200);
+
+    public static final ModConfigSpec.BooleanValue NEB_DEBUG_LOG = BUILDER
+            .comment("Enable NEB debug logs.")
+            .define("nebDebugLog", false);
 
     public static final ModConfigSpec SPEC = BUILDER.build();
 
@@ -53,5 +93,29 @@ public final class CoreConfig {
 
     public static int schedulerBudgetMicros() {
         return SCHEDULER_BUDGET_MICROS.get();
+    }
+
+    public static boolean nebCompatibleMode() {
+        return NEB_COMPATIBLE_MODE.get();
+    }
+
+    public static Set<String> nebBlackList() {
+        return new LinkedHashSet<>(NEB_BLACKLIST.get());
+    }
+
+    public static int nebContextLevel() {
+        return NEB_CONTEXT_LEVEL.get();
+    }
+
+    public static int nebFlushPeriodMs() {
+        return NEB_FLUSH_PERIOD_MS.get();
+    }
+
+    public static boolean nebDebugLog() {
+        return NEB_DEBUG_LOG.get();
+    }
+
+    private static boolean isPacketTypeEntry(Object value) {
+        return value instanceof String s && ResourceLocation.tryParse(s) != null;
     }
 }
