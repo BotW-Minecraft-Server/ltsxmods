@@ -4,7 +4,6 @@ import org.slf4j.Logger;
 
 import com.mojang.logging.LogUtils;
 
-import link.botwmcs.ltsxlogica.heat.HeatFeature;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
@@ -53,8 +52,7 @@ public class LTSXLogicA {
         // Do not add this line if there are no @SubscribeEvent-annotated functions in this class, like onServerStarting() below.
         NeoForge.EVENT_BUS.register(this);
 
-        // Heat system is a feature-part inside this mod.
-        HeatFeature.init(modEventBus, NeoForge.EVENT_BUS);
+        // Heat feature bootstrap now lives in LogicACoreModule (ServiceLoader + ltsxcore).
 
         // Register our mod's ModConfigSpec so that FML can create and load the config file for us
         modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);

@@ -2,6 +2,7 @@ package link.botwmcs.ltsxlogica.heat;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import link.botwmcs.ltsxlogica.data.HeatDataReloadListener;
 import link.botwmcs.ltsxlogica.heat.network.HeatNetworking;
 import net.minecraft.server.level.ServerLevel;
@@ -22,16 +23,20 @@ import net.neoforged.neoforge.event.tick.LevelTickEvent;
 /**
  * Public feature-part entry for LTSXLogicA heat system.
  *
- * Main class integration snippet:
- * HeatFeature.init(modEventBus, NeoForge.EVENT_BUS);
+ * Core module integration snippet:
+ * HeatFeature.init(ctx.modBus(), ctx.neoForgeBus());
  */
 public final class HeatFeature {
     private static final Map<net.minecraft.resources.ResourceKey<Level>, HeatManager> MANAGERS_BY_LEVEL = new HashMap<>();
+    private static final AtomicBoolean INITIALIZED = new AtomicBoolean(false);
 
     private HeatFeature() {
     }
 
     public static void init(IEventBus modBus, IEventBus forgeBus) {
+        if (!INITIALIZED.compareAndSet(false, true)) {
+            return;
+        }
         modBus.addListener(HeatNetworking::onRegisterPayloadHandlers);
 
         forgeBus.addListener(HeatFeature::onLevelTickPost);

@@ -100,6 +100,7 @@ public class Config {
     @SubscribeEvent
     public static void onLoad(final ModConfigEvent event) {
         if (event.getConfig().getSpec() == SPEC) {
+            bake();
         }
     }
 

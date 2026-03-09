@@ -1,7 +1,8 @@
 package link.botwmcs.ltsxlogica.heat.network;
 
+import link.botwmcs.core.net.CoreNetwork;
+import link.botwmcs.ltsxlogica.LTSXLogicA;
 import net.minecraft.server.level.ServerPlayer;
-import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 
@@ -15,7 +16,7 @@ public final class HeatNetworking {
     }
 
     public static void onRegisterPayloadHandlers(RegisterPayloadHandlersEvent event) {
-        PayloadRegistrar registrar = event.registrar(PROTOCOL_VERSION);
+        PayloadRegistrar registrar = event.registrar(LTSXLogicA.MODID).versioned(PROTOCOL_VERSION);
         registrar.playToClient(
                 HeatEntityTemperaturePayload.TYPE,
                 HeatEntityTemperaturePayload.STREAM_CODEC,
@@ -24,7 +25,6 @@ public final class HeatNetworking {
     }
 
     public static void sendEntityTemperature(ServerPlayer player, int tempFixed) {
-        PacketDistributor.sendToPlayer(player, new HeatEntityTemperaturePayload(tempFixed));
+        CoreNetwork.sendToPlayer(player, new HeatEntityTemperaturePayload(tempFixed));
     }
 }
-
