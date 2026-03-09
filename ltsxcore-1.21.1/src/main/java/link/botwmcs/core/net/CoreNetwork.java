@@ -16,7 +16,9 @@ import link.botwmcs.core.net.neb.CoreNebPacketPrefixHelper;
 import link.botwmcs.core.net.payload.DebugPingPayload;
 import link.botwmcs.core.net.payload.CoreNebBatchPayload;
 import link.botwmcs.core.net.payload.CoreNebDirectPayload;
+import link.botwmcs.core.net.payload.CoreNebGlobalBatchPayload;
 import link.botwmcs.core.net.payload.OpenNetworkingStatScreenPayload;
+import link.botwmcs.core.net.stat.CoreNebPacketFlowStat;
 import link.botwmcs.core.net.stat.CoreNebTrafficStat;
 import link.botwmcs.core.util.CoreIds;
 import link.botwmcs.core.util.CoreKeys;
@@ -128,6 +130,7 @@ public final class CoreNetwork {
                 .executesOn(HandlerThread.NETWORK);
         registrar.playBidirectional(CoreNebBatchPayload.TYPE, CoreNebBatchPayload.STREAM_CODEC, CoreNetwork::handleNebBatch);
         registrar.playBidirectional(CoreNebDirectPayload.TYPE, CoreNebDirectPayload.STREAM_CODEC, CoreNetwork::handleNebDirect);
+        registrar.playBidirectional(CoreNebGlobalBatchPayload.TYPE, CoreNebGlobalBatchPayload.STREAM_CODEC, CoreNetwork::handleNebGlobalBatch);
         CoreNebAggregationManager.init();
         LOGGER.info("{}Registered core transport payloads with protocol version {}.", CoreKeys.LOG_PREFIX, VANILLA_PROTOCOL_VERSION);
     }
@@ -240,6 +243,10 @@ public final class CoreNetwork {
         dispatchCorePayload(payload.coreType(), payload.data(), context);
     }
 
+    private static void handleNebGlobalBatch(CoreNebGlobalBatchPayload payload, IPayloadContext context) {
+        payload.handle(context);
+    }
+
     private static void handleNebBatch(CoreNebBatchPayload payload, IPayloadContext context) {
         CoreNebTrafficStat.inBaked(payload.data().length);
         FriendlyByteBuf data = new FriendlyByteBuf(Unpooled.wrappedBuffer(payload.data()));
@@ -256,6 +263,7 @@ public final class CoreNetwork {
             while (raw.readableBytes() > 0) {
                 ResourceLocation type = CoreNebPacketPrefixHelper.getType(raw);
                 int size = raw.readVarInt();
+                CoreNebPacketFlowStat.in(type, size);
                 byte[] bytes = new byte[size];
                 raw.readBytes(bytes);
                 dispatchCorePayload(type, bytes, context);

@@ -66,6 +66,14 @@ public final class CoreConfig {
             .comment("Enable NEB debug logs.")
             .define("nebDebugLog", false);
 
+    public static final ModConfigSpec.BooleanValue NEB_GLOBAL_MIXIN_ENABLED = BUILDER
+            .comment("Enable global NEB mixin mode. When enabled, Connection send path is intercepted globally in PLAY phase.")
+            .define("nebGlobalMixinEnabled", false);
+
+    public static final ModConfigSpec.BooleanValue NEB_GLOBAL_FULL_PACKET_STAT = BUILDER
+            .comment("Enable full packet stat in global NEB mode. When enabled, PacketEncoder/PacketDecoder also record BYPASS packets.")
+            .define("nebGlobalFullPacketStat", false);
+
     public static final ModConfigSpec SPEC = BUILDER.build();
 
     private CoreConfig() {
@@ -113,6 +121,14 @@ public final class CoreConfig {
 
     public static boolean nebDebugLog() {
         return NEB_DEBUG_LOG.get();
+    }
+
+    public static boolean nebGlobalMixinEnabled() {
+        return NEB_GLOBAL_MIXIN_ENABLED.get();
+    }
+
+    public static boolean nebGlobalFullPacketStat() {
+        return NEB_GLOBAL_FULL_PACKET_STAT.get();
     }
 
     private static boolean isPacketTypeEntry(Object value) {

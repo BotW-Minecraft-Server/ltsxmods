@@ -15,7 +15,15 @@ public final class CoreNebZstdHelper {
     }
 
     public static ByteBuf compress(Object key, ByteBuf raw) {
-        return Unpooled.wrappedBuffer(get(key).compress(raw.nioBuffer()));
+        if (raw.isDirect()) {
+            return Unpooled.wrappedBuffer(get(key).compress(raw.nioBuffer()));
+        }
+
+        ByteBuf directBuf = Unpooled.directBuffer(raw.readableBytes());
+        raw.getBytes(raw.readerIndex(), directBuf);
+        ByteBuf compressed = Unpooled.wrappedBuffer(get(key).compress(directBuf.nioBuffer()));
+        directBuf.release();
+        return compressed;
     }
 
     public static ByteBuf decompress(Object key, ByteBuf compressed, int originalSize) {
@@ -41,4 +49,3 @@ public final class CoreNebZstdHelper {
         return CONTEXTS.computeIfAbsent(key, __ -> new CoreNebZstdContext());
     }
 }
-

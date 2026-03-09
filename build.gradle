@@ -39,6 +39,14 @@ gradle.projectsEvaluated {
             add('localRuntime', project(p.path))
         }
     }
+
+    // Ensure interactive server console commands work in Gradle-backed run configurations.
+    // RunGameTask extends JavaExec; wiring standardInput is required so stdin reaches the server process.
+    modProjects().each { p ->
+        p.tasks.withType(JavaExec).matching { it.name == 'runServer' }.configureEach {
+            standardInput = System.in
+        }
+    }
 }
 
 tasks.register('buildAllMods') {

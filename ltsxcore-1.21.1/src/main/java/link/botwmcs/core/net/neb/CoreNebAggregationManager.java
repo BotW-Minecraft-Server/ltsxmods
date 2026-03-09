@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 import link.botwmcs.core.config.CoreConfig;
 import link.botwmcs.core.net.payload.CoreNebBatchPayload;
 import link.botwmcs.core.net.payload.CoreNebDirectPayload;
+import link.botwmcs.core.net.stat.CoreNebPacketFlowStat;
 import link.botwmcs.core.net.stat.CoreNebTrafficStat;
 import net.minecraft.network.FriendlyByteBuf;
 import net.minecraft.resources.ResourceLocation;
@@ -63,6 +64,7 @@ public final class CoreNebAggregationManager {
             PacketDistributor.sendToPlayer(player, new CoreNebDirectPayload(type, data));
             return;
         }
+        CoreNebPacketFlowStat.out(type, data.length);
         TO_PLAYER_BUFFER.computeIfAbsent(player, __ -> new ArrayList<>()).add(new CoreNebFrame(type, data));
     }
 
@@ -74,6 +76,7 @@ public final class CoreNebAggregationManager {
             PacketDistributor.sendToServer(new CoreNebDirectPayload(type, data));
             return;
         }
+        CoreNebPacketFlowStat.out(type, data.length);
         TO_SERVER_BUFFER.add(new CoreNebFrame(type, data));
     }
 

@@ -27,18 +27,30 @@ public final class CoreNebZstdContext implements Closeable {
     }
 
     public ByteBuffer compress(ByteBuffer raw) {
-        int maxDstSize = (int) Zstd.compressBound(raw.remaining());
+        ByteBuffer source = raw.duplicate();
+        int maxDstSize = (int) Zstd.compressBound(source.remaining());
         ByteBuffer dst = ByteBuffer.allocateDirect(maxDstSize);
-        compressCtx.compressDirectByteBufferStream(dst, raw, EndDirective.FLUSH);
-        dst.flip();
-        return dst;
+        try {
+            compressCtx.compressDirectByteBufferStream(dst, source, EndDirective.FLUSH);
+            dst.flip();
+            return dst;
+        } catch (RuntimeException ignored) {
+            compressCtx.reset();
+            return compressCtx.compress(raw.duplicate());
+        }
     }
 
     public ByteBuffer decompress(ByteBuffer compressed, int originalSize) {
+        ByteBuffer source = compressed.duplicate();
         ByteBuffer dst = ByteBuffer.allocateDirect(originalSize);
-        decompressCtx.decompressDirectByteBufferStream(dst, compressed);
-        dst.flip();
-        return dst;
+        try {
+            decompressCtx.decompressDirectByteBufferStream(dst, source);
+            dst.flip();
+            return dst;
+        } catch (RuntimeException ignored) {
+            decompressCtx.reset();
+            return decompressCtx.decompress(compressed.duplicate(), originalSize);
+        }
     }
 
     @Override
@@ -47,4 +59,3 @@ public final class CoreNebZstdContext implements Closeable {
         decompressCtx.close();
     }
 }
-
