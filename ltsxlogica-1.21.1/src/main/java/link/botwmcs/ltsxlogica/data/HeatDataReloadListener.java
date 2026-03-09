@@ -7,6 +7,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -426,7 +427,39 @@ public final class HeatDataReloadListener extends SimpleJsonResourceReloadListen
             soulBase = getBoolean(obj, "soul_base", false);
         }
 
-        return new HeatModelData.BlockMatcher(block, tag, lit, soulBase);
+        Map<String, String> state = fallback.state();
+        if (obj.has("state")) {
+            state = parseBlockStateMatcher(obj.get("state"), state);
+        }
+
+        return new HeatModelData.BlockMatcher(block, tag, lit, soulBase, state);
+    }
+
+    private static Map<String, String> parseBlockStateMatcher(JsonElement element, Map<String, String> fallback) {
+        if (element == null || !element.isJsonObject()) {
+            return fallback;
+        }
+
+        Map<String, String> state = new LinkedHashMap<>(fallback);
+        JsonObject stateObj = element.getAsJsonObject();
+        for (Map.Entry<String, JsonElement> entry : stateObj.entrySet()) {
+            String key = entry.getKey();
+            JsonElement valueElement = entry.getValue();
+            if (key == null || key.isBlank() || valueElement == null || valueElement.isJsonNull()) {
+                continue;
+            }
+            if (!valueElement.isJsonPrimitive()) {
+                LTSXLogicA.LOGGER.warn("Ignoring heat matcher state '{}' because value is not a primitive JSON value", key);
+                continue;
+            }
+
+            String value = valueElement.getAsString();
+            if (value == null || value.isBlank()) {
+                continue;
+            }
+            state.put(key, value);
+        }
+        return state.isEmpty() ? Map.of() : Map.copyOf(state);
     }
 
     private static HeatModelData.FluidMatcher parseFluidMatcher(JsonObject obj, HeatModelData.FluidMatcher fallback) {

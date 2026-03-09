@@ -1,7 +1,10 @@
 package link.botwmcs.ltsxlogica.data;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import link.botwmcs.ltsxlogica.heat.HeatBlockTags;
 import link.botwmcs.ltsxlogica.heat.HeatManager;
 import link.botwmcs.ltsxlogica.heat.HeatProps;
@@ -15,6 +18,7 @@ import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.minecraft.world.level.material.Fluid;
 import net.minecraft.world.level.material.FluidState;
 
@@ -305,12 +309,18 @@ public final class HeatModelData {
         private final TagKey<Block> tag;
         private final Boolean lit;
         private final Boolean soulBase;
+        private final Map<String, String> state;
 
         public BlockMatcher(Block block, TagKey<Block> tag, Boolean lit, Boolean soulBase) {
+            this(block, tag, lit, soulBase, Map.of());
+        }
+
+        public BlockMatcher(Block block, TagKey<Block> tag, Boolean lit, Boolean soulBase, Map<String, String> state) {
             this.block = block;
             this.tag = tag;
             this.lit = lit;
             this.soulBase = soulBase;
+            this.state = normalizeStateMap(state);
         }
 
         public Block block() {
@@ -329,6 +339,10 @@ public final class HeatModelData {
             return this.soulBase;
         }
 
+        public Map<String, String> state() {
+            return this.state;
+        }
+
         public boolean matches(BlockState state, boolean fireOnSoulBase) {
             if (this.block != null && !state.is(this.block)) {
                 return false;
@@ -345,7 +359,72 @@ public final class HeatModelData {
                     return false;
                 }
             }
+            if (!matchesStateProperties(state)) {
+                return false;
+            }
             return this.soulBase == null || this.soulBase.booleanValue() == fireOnSoulBase;
+        }
+
+        private boolean matchesStateProperties(BlockState state) {
+            if (this.state.isEmpty()) {
+                return true;
+            }
+            for (Map.Entry<String, String> entry : this.state.entrySet()) {
+                Property<?> property = findProperty(state, entry.getKey());
+                if (property == null) {
+                    return false;
+                }
+                String actual = normalizeStateToken(readPropertyValue(state, property));
+                if (actual == null || !actual.equals(entry.getValue())) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static Map<String, String> normalizeStateMap(Map<String, String> rawState) {
+            if (rawState == null || rawState.isEmpty()) {
+                return Map.of();
+            }
+            Map<String, String> normalized = new LinkedHashMap<>();
+            for (Map.Entry<String, String> entry : rawState.entrySet()) {
+                String key = normalizeStateToken(entry.getKey());
+                String value = normalizeStateToken(entry.getValue());
+                if (key == null || value == null) {
+                    continue;
+                }
+                normalized.put(key, value);
+            }
+            return normalized.isEmpty() ? Map.of() : Map.copyOf(normalized);
+        }
+
+        private static String normalizeStateToken(String raw) {
+            if (raw == null) {
+                return null;
+            }
+            String trimmed = raw.trim();
+            if (trimmed.isEmpty()) {
+                return null;
+            }
+            return trimmed.toLowerCase(Locale.ROOT);
+        }
+
+        private static Property<?> findProperty(BlockState state, String name) {
+            for (Property<?> property : state.getProperties()) {
+                if (property.getName().equals(name)) {
+                    return property;
+                }
+            }
+            return null;
+        }
+
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        private static String readPropertyValue(BlockState state, Property<?> property) {
+            return readPropertyValueUnsafe(state, (Property) property);
+        }
+
+        private static <T extends Comparable<T>> String readPropertyValueUnsafe(BlockState state, Property<T> property) {
+            return property.getName(state.getValue(property));
         }
     }
 

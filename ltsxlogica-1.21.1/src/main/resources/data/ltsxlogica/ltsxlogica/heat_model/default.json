@@ -281,6 +281,120 @@
     },
     {
       "match": {
+        "block": "create:blaze_burner",
+        "state": {
+          "blaze": "smouldering"
+        }
+      },
+      "props": {
+        "conductivity_k": 0.28,
+        "capacity_c": 7.0,
+        "generation_q": 0.0,
+        "relax_r": 0.008,
+        "target_celsius": 220.0,
+        "source_strength_s": 0.06,
+        "convective_h": 0.04,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "create:blaze_burner",
+        "state": {
+          "blaze": "fading"
+        }
+      },
+      "props": {
+        "conductivity_k": 0.3,
+        "capacity_c": 7.5,
+        "generation_q": 0.0,
+        "relax_r": 0.007,
+        "target_celsius": 360.0,
+        "source_strength_s": 0.08,
+        "convective_h": 0.05,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "create:blaze_burner",
+        "state": {
+          "blaze": "kindled"
+        }
+      },
+      "props": {
+        "conductivity_k": 0.32,
+        "capacity_c": 8.0,
+        "generation_q": 0.0,
+        "relax_r": 0.006,
+        "target_celsius": 620.0,
+        "source_strength_s": 0.11,
+        "convective_h": 0.07,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "create:blaze_burner",
+        "state": {
+          "blaze": "seething"
+        }
+      },
+      "props": {
+        "conductivity_k": 0.35,
+        "capacity_c": 8.5,
+        "generation_q": 0.0,
+        "relax_r": 0.005,
+        "target_celsius": 980.0,
+        "source_strength_s": 0.16,
+        "convective_h": 0.1,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "create:lit_blaze_burner",
+        "state": {
+          "flame_type": "regular"
+        }
+      },
+      "props": {
+        "conductivity_k": 0.3,
+        "capacity_c": 8.0,
+        "generation_q": 0.0,
+        "relax_r": 0.006,
+        "target_celsius": 520.0,
+        "source_strength_s": 0.1,
+        "convective_h": 0.05,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
+        "block": "create:lit_blaze_burner",
+        "state": {
+          "flame_type": "soul"
+        }
+      },
+      "props": {
+        "conductivity_k": 0.28,
+        "capacity_c": 8.2,
+        "generation_q": 0.0,
+        "relax_r": 0.0065,
+        "target_celsius": 360.0,
+        "source_strength_s": 0.09,
+        "convective_h": 0.04,
+        "update_period_ticks": 1,
+        "air_like": false
+      }
+    },
+    {
+      "match": {
         "tag": "ltsxlogica:burnable",
         "lit": true
       },
@@ -437,6 +551,60 @@
             "lit": true
           },
           "contribution_celsius": 3.5
+        },
+        {
+          "match": {
+            "block": "create:blaze_burner",
+            "state": {
+              "blaze": "smouldering"
+            }
+          },
+          "contribution_celsius": 2.0
+        },
+        {
+          "match": {
+            "block": "create:blaze_burner",
+            "state": {
+              "blaze": "fading"
+            }
+          },
+          "contribution_celsius": 4.0
+        },
+        {
+          "match": {
+            "block": "create:blaze_burner",
+            "state": {
+              "blaze": "kindled"
+            }
+          },
+          "contribution_celsius": 6.5
+        },
+        {
+          "match": {
+            "block": "create:blaze_burner",
+            "state": {
+              "blaze": "seething"
+            }
+          },
+          "contribution_celsius": 9.0
+        },
+        {
+          "match": {
+            "block": "create:lit_blaze_burner",
+            "state": {
+              "flame_type": "regular"
+            }
+          },
+          "contribution_celsius": 5.0
+        },
+        {
+          "match": {
+            "block": "create:lit_blaze_burner",
+            "state": {
+              "flame_type": "soul"
+            }
+          },
+          "contribution_celsius": 4.0
         },
         {
           "match": {
