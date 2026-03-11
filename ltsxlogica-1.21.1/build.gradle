@@ -31,6 +31,38 @@ repositories {
         url = "https://maven.ithundxr.dev/snapshots"
     }
     maven {
+        name = "BlameJared"
+        url = "https://maven.blamejared.com"
+    }
+    maven {
+        name = "IllusiveSoulworks"
+        url = "https://maven.theillusivec4.top/"
+    }
+    maven {
+        name = "SquidDev"
+        url = "https://maven.squiddev.cc"
+    }
+    maven {
+        name = "FTB"
+        url = "https://maven.ftb.dev/releases"
+    }
+    maven {
+        name = "Architectury"
+        url = "https://maven.architectury.dev"
+    }
+    maven {
+        name = "JourneyMap"
+        url = "https://jm.gserv.me/repository/maven-public"
+        content {
+            includeGroup "info.journeymap"
+            includeGroup "mysticdrew"
+        }
+    }
+    maven {
+        name = "ChocolateMinecraft"
+        url = "https://chocolateminecraft.com/maven"
+    }
+    maven {
         url "https://cursemaven.com"
         content {
             includeGroup "curse.maven"
@@ -148,17 +180,23 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
+def unifiedImplementationDeps = rootProject.ext.has('unifiedImplementationDeps')
+        ? rootProject.ext.unifiedImplementationDeps
+        : [
+                ponder    : "net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}",
+                registrate: "com.tterrag.registrate:Registrate:${registrate_version}"
+        ]
+
 dependencies {
     // ModDevGradle workspace sibling module dependency
     implementation project(':ltsxcore')
     implementation project(':eclipticseasons')
-    implementation("com.simibubi.create:create-${minecraft_version}:${create_version}:slim") {
-        transitive = false
-    }
-    implementation("net.createmod.ponder:ponder-neoforge:${ponder_version}+mc${minecraft_version}")
+    compileOnly project(':create')
+    localRuntime project(':create')
+    implementation(unifiedImplementationDeps.ponder)
     compileOnly("dev.engine-room.flywheel:flywheel-neoforge-api-${minecraft_version}:${flywheel_version}")
     runtimeOnly("dev.engine-room.flywheel:flywheel-neoforge-${minecraft_version}:${flywheel_version}")
-    implementation("com.tterrag.registrate:Registrate:${registrate_version}")
+    implementation(unifiedImplementationDeps.registrate)
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
     // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
