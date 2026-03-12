@@ -7,6 +7,7 @@ import net.minecraft.resources.ResourceLocation;
  */
 public final class CoreIds {
     public static final String MOD_ID = "ltsxcore";
+    public static final String ROOT_COMMAND = "ltsx";
 
     private CoreIds() {
     }

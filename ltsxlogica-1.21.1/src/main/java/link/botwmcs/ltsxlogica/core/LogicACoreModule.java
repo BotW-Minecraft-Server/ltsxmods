@@ -1,5 +1,6 @@
 package link.botwmcs.ltsxlogica.core;
 
+import link.botwmcs.core.api.command.LtsxCommandRegistrar;
 import link.botwmcs.core.api.module.CoreModuleContext;
 import link.botwmcs.core.api.module.ICoreModule;
 import link.botwmcs.core.service.CoreServices;
@@ -7,6 +8,7 @@ import link.botwmcs.ltsxlogica.LTSXLogicA;
 import link.botwmcs.ltsxlogica.api.heat.IHeatService;
 import link.botwmcs.ltsxlogica.heat.HeatFeature;
 import link.botwmcs.ltsxlogica.heat.service.HeatServiceImpl;
+import net.minecraft.network.chat.Component;
 
 /**
  * ltsxcore module adapter for ltsxlogica.
@@ -30,5 +32,20 @@ public final class LogicACoreModule implements ICoreModule {
         HeatFeature.init(ctx.modBus(), ctx.neoForgeBus());
         CoreServices.registerIfAbsent(IHeatService.class, new HeatServiceImpl());
         ctx.logger().info("{}Registered heat feature and IHeatService bridge.", LOG_PREFIX);
+    }
+
+    @Override
+    public void registerLtsxCommands(LtsxCommandRegistrar registrar) {
+        registrar.menu(
+                "logica",
+                Component.literal("Logic A Modules"),
+                Component.literal("LTSX Logic A"),
+                logica -> logica.menu(
+                        "heat",
+                        Component.literal("Heat Module"),
+                        heat -> {
+                        }
+                )
+        );
     }
 }
