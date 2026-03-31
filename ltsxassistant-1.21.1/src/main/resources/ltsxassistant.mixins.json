@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "link.botwmcs.__MODID__.mixin",
+  "package": "link.botwmcs.ltsxassistant.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [],

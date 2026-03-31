@@ -5,6 +5,71 @@ plugins {
 
 description = 'LTSX Neo workspace (ModDevGradle modules)'
 
+def addBotwmcsRepository = { repos ->
+    repos.maven {
+        name = 'reposiliteRepository'
+        url = 'https://maven.botwmcs.link/releases'
+    }
+
+    repos.mavenCentral()
+    repos.maven {
+        name = "Create Maven"
+        url = "https://maven.createmod.net"
+    }
+    repos.maven {
+        name = "IThundxr Snapshots"
+        url = "https://maven.ithundxr.dev/snapshots"
+    }
+    repos.maven {
+        name = "BlameJared"
+        url = "https://maven.blamejared.com"
+    }
+    repos.maven {
+        name = "IllusiveSoulworks"
+        url = "https://maven.theillusivec4.top/"
+    }
+    repos.maven {
+        name = "SquidDev"
+        url = "https://maven.squiddev.cc"
+    }
+    repos.maven {
+        name = "FTB"
+        url = "https://maven.ftb.dev/releases"
+    }
+    repos.maven {
+        name = "Architectury"
+        url = "https://maven.architectury.dev"
+    }
+    repos.maven {
+        name = "JourneyMap"
+        url = "https://jm.gserv.me/repository/maven-public"
+        content {
+            includeGroup "info.journeymap"
+            includeGroup "mysticdrew"
+        }
+    }
+    repos.maven {
+        name = "ChocolateMinecraft"
+        url = "https://chocolateminecraft.com/maven"
+    }
+    repos.maven {
+        url "https://cursemaven.com"
+        content {
+            includeGroup "curse.maven"
+        }
+    }
+    repos.maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+    repos.maven {
+        url "https://maven.su5ed.dev/releases"
+    }
+}
+
 ext.unifiedImplementationDeps = [
     jei          : 'mezz.jei:jei-1.21.1-neoforge:19.25.0.325',
     jade         : 'curse.maven:jade-324717:6291517',
@@ -78,6 +143,8 @@ tasks.register('testAllMods') {
 }
 
 subprojects { p ->
+    addBotwmcsRepository(p.repositories)
+
     p.pluginManager.withPlugin('net.neoforged.moddev') {
         registerIntegratedModProject(p)
     }

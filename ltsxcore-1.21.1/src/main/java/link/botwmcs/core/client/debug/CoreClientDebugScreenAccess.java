@@ -1,4 +1,4 @@
-package link.botwmcs.core.net.client;
+package link.botwmcs.core.client.debug;
 
 import net.minecraft.client.Minecraft;
 

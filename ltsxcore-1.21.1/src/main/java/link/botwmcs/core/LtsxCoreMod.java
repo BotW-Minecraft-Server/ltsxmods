@@ -6,6 +6,7 @@ import link.botwmcs.core.command.CoreCommands;
 import link.botwmcs.core.config.CoreConfig;
 import link.botwmcs.core.data.CoreData;
 import link.botwmcs.core.event.CoreEvents;
+import link.botwmcs.core.service.fizzy.FizzyBootstrap;
 import link.botwmcs.core.module.ModuleManager;
 import link.botwmcs.core.net.CoreNetwork;
 import link.botwmcs.core.service.CoreServices;
@@ -27,6 +28,7 @@ public final class LtsxCoreMod {
 
     public LtsxCoreMod(IEventBus modBus) {
         CoreServices.bootstrap();
+        FizzyBootstrap.bootstrap(LOGGER, modBus);
         CoreConfig.init(modBus);
         CoreNetwork.register(modBus);
         CoreData.bootstrap();
@@ -39,6 +41,7 @@ public final class LtsxCoreMod {
                 NeoForge.EVENT_BUS,
                 modBus
         ));
+        FizzyBootstrap.applyContributors(LOGGER);
 
         LOGGER.info("{}Bootstrap finished.", CoreKeys.LOG_PREFIX);
     }

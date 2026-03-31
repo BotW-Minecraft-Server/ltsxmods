@@ -1,4 +1,4 @@
-package link.botwmcs.__MODID__;
+package link.botwmcs.ltsxassistant;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 

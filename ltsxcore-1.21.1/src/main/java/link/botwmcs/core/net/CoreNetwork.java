@@ -364,7 +364,7 @@ public final class CoreNetwork {
 
     private static void openClientNetworkingStatScreen() {
         try {
-            Class<?> clazz = Class.forName("link.botwmcs.core.net.client.CoreClientDebugScreenAccess");
+            Class<?> clazz = Class.forName("link.botwmcs.core.client.debug.CoreClientDebugScreenAccess");
             clazz.getMethod("openNetworkingStatScreen").invoke(null);
         } catch (ClassNotFoundException | NoSuchMethodException | IllegalAccessException | InvocationTargetException e) {
             LOGGER.error("{}Failed to open core networking stat screen on client.", CoreKeys.LOG_PREFIX, e);
