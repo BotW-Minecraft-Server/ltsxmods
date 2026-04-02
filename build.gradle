@@ -95,6 +95,9 @@ def devHostProject = project(devHostPath)
 def integratedRunSelectors = ['runClient', 'runServer', 'runGameTestServer', ':runClient', ':runServer', ':runGameTestServer']
 def integratedRunRequested = gradle.startParameter.taskNames.any { integratedRunSelectors.contains(it) }
 def registeredIntegratedModProjects = [] as Set<String>
+def integratedServerRunDir = rootProject.file('run/server').absoluteFile
+def devHostBuildDir = devHostProject.layout.buildDirectory.asFile.get().absoluteFile
+def devHostServerLaunchScript = new File(devHostBuildDir, 'moddev/runServer.cmd')
 
 def registerIntegratedModProject = { Project p ->
     if (!registeredIntegratedModProjects.add(p.path)) {
@@ -171,37 +174,27 @@ tasks.register('runServer') {
 
 tasks.register('runServerTerminaled') {
     group = 'run'
-    description = "Open an external terminal window and run integrated server from ${devHostPath}"
-    notCompatibleWithConfigurationCache('This task spawns a separate interactive Gradle process in an external terminal window.')
+    description = "Prepare the integrated server from ${devHostPath}, then launch its Java process in an external terminal window"
+    dependsOn(':buildAllMods', "${devHostPath}:createServerLaunchScript")
+    notCompatibleWithConfigurationCache('This task prepares the dev server run, then spawns a detached interactive Java process in an external terminal window.')
 
     doLast {
         if (!OperatingSystem.current().isWindows()) {
             throw new GradleException('runServerTerminaled is currently implemented only for Windows.')
         }
 
-        def wrapper = rootProject.file('gradlew.bat').absolutePath
-        def runArgs = ['--no-daemon', '--console=plain', '--no-configuration-cache']
-        if (project.hasProperty('devHost')) {
-            runArgs.add("-PdevHost=${project.property('devHost')}")
+        if (!devHostServerLaunchScript.isFile()) {
+            throw new GradleException("Missing generated launch script at ${devHostServerLaunchScript.absolutePath}")
         }
-        runArgs.add('runServer')
-
-        def command = "\"${wrapper}\" ${runArgs.collect { arg ->
-            arg.contains(' ') ? "\"${arg}\"" : arg
-        }.join(' ')}"
 
         new ProcessBuilder(
                 'cmd',
                 '/c',
                 'start',
                 'LTSX Neo Server',
-                '/D',
-                rootProject.projectDir.absolutePath,
-                'cmd',
-                '/k',
-                command
+                devHostServerLaunchScript.absolutePath
         )
-                .directory(rootProject.projectDir)
+                .directory(integratedServerRunDir)
                 .start()
     }
 }

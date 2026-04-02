@@ -5,6 +5,7 @@ import java.nio.file.Paths;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.core.Logger;
 import org.apache.logging.log4j.core.LoggerContext;
+import org.apache.logging.log4j.core.Appender;
 import org.apache.logging.log4j.core.config.LoggerConfig;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
@@ -26,14 +27,25 @@ public final class ConsoleSetup {
 
         final Logger logger = (Logger) LogManager.getRootLogger();
         final LoggerContext loggerContext = (LoggerContext) LogManager.getContext(false);
-        final LoggerConfig loggerConfig = loggerContext.getConfiguration().getLoggerConfig(logger.getName());
+        final var configuration = loggerContext.getConfiguration();
+        final LoggerConfig loggerConfig = configuration.getLoggerConfig(logger.getName());
 
         loggerConfig.removeAppender(ConsoleAppender.NAME);
+        loggerConfig.removeAppender("Console");
         loggerConfig.removeAppender("SysOut");
         loggerConfig.addAppender(consoleAppender, loggerConfig.getLevel(), null);
+
+        stopAppender(configuration.getAppender("Console"));
+        stopAppender(configuration.getAppender("SysOut"));
         loggerContext.updateLoggers();
 
         return new ConsoleState(lineReader, delegatingCompleter, delegatingHighlighter, delegatingParser);
+    }
+
+    private static void stopAppender(Appender appender) {
+        if (appender != null) {
+            appender.stop();
+        }
     }
 
     public static Path historyFile() {

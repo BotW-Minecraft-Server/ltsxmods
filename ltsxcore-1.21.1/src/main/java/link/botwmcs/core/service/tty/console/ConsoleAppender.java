@@ -15,7 +15,11 @@ final class ConsoleAppender extends AbstractAppender {
         super(
                 NAME,
                 null,
-                PatternLayout.newBuilder().withPattern(logPattern).build(),
+                PatternLayout.newBuilder()
+                        .withPattern(logPattern)
+                        .withDisableAnsi(false)
+                        .withNoConsoleNoAnsi(false)
+                        .build(),
                 false,
                 new Property[0]
         );
@@ -24,16 +28,12 @@ final class ConsoleAppender extends AbstractAppender {
 
     @Override
     public void append(LogEvent event) {
+        final String message = this.getLayout().toSerializable(event).toString();
         if (this.lineReader.isReading()) {
-            this.lineReader.callWidget(LineReader.CLEAR);
+            this.lineReader.printAbove(message);
+        } else {
+            this.lineReader.getTerminal().writer().print(message);
+            this.lineReader.getTerminal().writer().flush();
         }
-
-        this.lineReader.getTerminal().writer().print(this.getLayout().toSerializable(event).toString());
-
-        if (this.lineReader.isReading()) {
-            this.lineReader.callWidget(LineReader.REDRAW_LINE);
-            this.lineReader.callWidget(LineReader.REDISPLAY);
-        }
-        this.lineReader.getTerminal().writer().flush();
     }
 }
