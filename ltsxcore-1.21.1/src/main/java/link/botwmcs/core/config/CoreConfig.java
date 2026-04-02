@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
+import link.botwmcs.core.service.tty.console.TtyStyleColor;
 import link.botwmcs.core.util.CoreKeys;
 import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
@@ -25,6 +26,29 @@ public final class CoreConfig {
     public static final ModConfigSpec.BooleanValue MODULE_LOGGING = BUILDER
             .comment("Enable module lifecycle logging.")
             .define("moduleLogging", true);
+
+    public static final ModConfigSpec.BooleanValue TTY_ENABLED = BUILDER
+            .comment("Enable enhanced dedicated server TTY console.")
+            .define("ttyEnabled", true);
+
+    public static final ModConfigSpec.ConfigValue<String> TTY_LOG_PATTERN = BUILDER
+            .comment("Log4j pattern used by the enhanced TTY console.")
+            .define(
+                    "ttyLogPattern",
+                    "%highlight{[%d{HH:mm:ss} %level] [%t]: [%logger{1}]}{FATAL=red, ERROR=red, WARN=yellow, INFO=default, DEBUG=yellow, TRACE=blue} %msg%n"
+            );
+
+    public static final ModConfigSpec.ConfigValue<List<? extends String>> TTY_HIGHLIGHT_COLORS = BUILDER
+            .comment("TTY command argument highlight colors. Possible values: [BLACK, RED, GREEN, YELLOW, BLUE, MAGENTA, CYAN, WHITE]")
+            .defineListAllowEmpty(
+                    List.of("ttyHighlightColors"),
+                    List.of("CYAN", "YELLOW", "GREEN", "MAGENTA", "BLUE"),
+                    CoreConfig::isTtyColorEntry
+            );
+
+    public static final ModConfigSpec.BooleanValue TTY_LOG_PLAYER_COMMANDS = BUILDER
+            .comment("Whether to log commands executed by players to the enhanced TTY console.")
+            .define("ttyLogPlayerCommands", true);
 
     public static final ModConfigSpec.IntValue SCHEDULER_BUDGET_MICROS = BUILDER
             .comment("Per-tick task scheduler budget in microseconds.")
@@ -99,6 +123,22 @@ public final class CoreConfig {
         return MODULE_LOGGING.get();
     }
 
+    public static boolean ttyEnabled() {
+        return TTY_ENABLED.get();
+    }
+
+    public static String ttyLogPattern() {
+        return TTY_LOG_PATTERN.get();
+    }
+
+    public static List<String> ttyHighlightColors() {
+        return List.copyOf(TTY_HIGHLIGHT_COLORS.get());
+    }
+
+    public static boolean ttyLogPlayerCommands() {
+        return TTY_LOG_PLAYER_COMMANDS.get();
+    }
+
     public static int schedulerBudgetMicros() {
         return SCHEDULER_BUDGET_MICROS.get();
     }
@@ -133,5 +173,9 @@ public final class CoreConfig {
 
     private static boolean isPacketTypeEntry(Object value) {
         return value instanceof String s && ResourceLocation.tryParse(s) != null;
+    }
+
+    private static boolean isTtyColorEntry(Object value) {
+        return value instanceof String s && TtyStyleColor.byName(s) != null;
     }
 }

@@ -3,6 +3,8 @@ plugins {
     id 'net.neoforged.moddev' version '2.0.140' apply false
 }
 
+import org.gradle.internal.os.OperatingSystem
+
 description = 'LTSX Neo workspace (ModDevGradle modules)'
 
 def addBotwmcsRepository = { repos ->
@@ -165,6 +167,43 @@ tasks.register('runServer') {
     description = "Run integrated server from ${devHostPath} with all workspace mods"
     dependsOn(':buildAllMods', "${devHostPath}:runServer")
     notCompatibleWithConfigurationCache(integratedRunCacheReason)
+}
+
+tasks.register('runServerTerminaled') {
+    group = 'run'
+    description = "Open an external terminal window and run integrated server from ${devHostPath}"
+    notCompatibleWithConfigurationCache('This task spawns a separate interactive Gradle process in an external terminal window.')
+
+    doLast {
+        if (!OperatingSystem.current().isWindows()) {
+            throw new GradleException('runServerTerminaled is currently implemented only for Windows.')
+        }
+
+        def wrapper = rootProject.file('gradlew.bat').absolutePath
+        def runArgs = ['--no-daemon', '--console=plain', '--no-configuration-cache']
+        if (project.hasProperty('devHost')) {
+            runArgs.add("-PdevHost=${project.property('devHost')}")
+        }
+        runArgs.add('runServer')
+
+        def command = "\"${wrapper}\" ${runArgs.collect { arg ->
+            arg.contains(' ') ? "\"${arg}\"" : arg
+        }.join(' ')}"
+
+        new ProcessBuilder(
+                'cmd',
+                '/c',
+                'start',
+                'LTSX Neo Server',
+                '/D',
+                rootProject.projectDir.absolutePath,
+                'cmd',
+                '/k',
+                command
+        )
+                .directory(rootProject.projectDir)
+                .start()
+    }
 }
 
 tasks.register('runGameTestServer') {

@@ -10,6 +10,8 @@ import link.botwmcs.core.data.CoreData;
 import link.botwmcs.core.module.ModuleManager;
 import link.botwmcs.core.net.CoreNetwork;
 import link.botwmcs.core.net.payload.OpenNetworkingStatScreenPayload;
+import link.botwmcs.core.service.CoreServices;
+import link.botwmcs.core.service.tty.TtyService;
 import link.botwmcs.core.util.CoreIds;
 import link.botwmcs.core.util.CoreKeys;
 import net.minecraft.ChatFormatting;
@@ -56,6 +58,15 @@ public final class CoreCommands {
                             "modules",
                             Component.literal("List loaded modules"),
                             context -> executeModules(context.getSource())
+                    );
+                    core.menu(
+                            "console",
+                            Component.literal("TTY console service"),
+                            console -> console.action(
+                                    "status",
+                                    Component.literal("Show TTY console status"),
+                                    context -> executeConsoleStatus(context.getSource())
+                            )
                     );
                     core.menu(
                             "debug",
@@ -119,6 +130,42 @@ public final class CoreCommands {
             source.sendSuccess(() -> line, false);
         }
         return modules.size();
+    }
+
+    private static int executeConsoleStatus(CommandSourceStack source) {
+        final TtyService.Status status = CoreServices.getOptional(TtyService.class)
+                .map(TtyService::status)
+                .orElseGet(TtyService.Status::unsupported);
+
+        source.sendSuccess(
+                () -> Component.literal("LTSX Core - TTY Console").withStyle(ChatFormatting.YELLOW),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("- supported=" + status.supported()).withStyle(ChatFormatting.WHITE),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("- enabled=" + status.enabled()).withStyle(ChatFormatting.WHITE),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("- installed=" + status.installed()).withStyle(ChatFormatting.WHITE),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("- running=" + status.running()).withStyle(ChatFormatting.WHITE),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("- logPlayerCommands=" + status.logPlayerCommands()).withStyle(ChatFormatting.WHITE),
+                false
+        );
+        source.sendSuccess(
+                () -> Component.literal("- historyFile=" + status.historyFile()).withStyle(ChatFormatting.GRAY),
+                false
+        );
+        return status.running() ? 1 : 0;
     }
 
     private static int executeDebug(CommandSourceStack source, boolean enabled) {

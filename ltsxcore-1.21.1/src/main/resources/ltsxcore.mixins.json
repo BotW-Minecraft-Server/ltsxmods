@@ -5,8 +5,10 @@
   "mixins": [
     "ConnectionMixin",
     "CustomPacketPayloadMixin",
+    "tty.DedicatedServerConsoleThreadMixin",
     "PacketDecoderMixin",
-    "PacketEncoderMixin"
+    "PacketEncoderMixin",
+    "tty.ServerGamePacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 1
