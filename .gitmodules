@@ -2,7 +2,3 @@
 	path = eclipticseasons-1.21.1
 	url = https://github.com/BotW-Minecraft-Server/Ecliptic-Seasons.git
 	branch = botwmcs/workspace-neoforge-1.21.x
-[submodule "create-1.21.1"]
-	path = create-1.21.1
-	url = https://github.com/BotW-Minecraft-Server/Create.git
-	branch = botwmcs/workspace-neoforge-1.21.1-6.0.9

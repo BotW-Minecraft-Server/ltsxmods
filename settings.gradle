@@ -22,9 +22,6 @@ include(':eclipticseasons')
 project(':eclipticseasons').projectDir = file('eclipticseasons-1.21.1')
 project(':eclipticseasons').buildFileName = 'workspace.build.gradle'
 
-include(':create')
-project(':create').projectDir = file('create-1.21.1')
-
 include(':ltsxassistant')
 project(':ltsxassistant').projectDir = file('ltsxassistant-1.21.1')
 
