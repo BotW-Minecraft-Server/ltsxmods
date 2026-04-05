@@ -1,10 +1,14 @@
 package link.botwmcs.ltsxassistant.core;
 
 import link.botwmcs.core.api.command.LtsxCommandRegistrar;
+import link.botwmcs.core.api.fizzier.contrib.IFizzyProxyRuleContributor;
 import link.botwmcs.core.api.module.CoreModuleContext;
 import link.botwmcs.core.api.module.ICoreModule;
+import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
+import link.botwmcs.ltsxassistant.service.client.AssistantTitleScreenProxyContributor;
 import net.minecraft.network.chat.Component;
+import net.neoforged.fml.loading.FMLEnvironment;
 
 /**
  * ltsxcore module adapter for ltsxassistant.
@@ -25,6 +29,10 @@ public final class AssistantCoreModule implements ICoreModule {
 
     @Override
     public void onRegister(CoreModuleContext ctx) {
+        if (FMLEnvironment.dist.isClient()) {
+            CoreServices.registerMulti(IFizzyProxyRuleContributor.class, new AssistantTitleScreenProxyContributor());
+            ctx.logger().info("{}Registered assistant TitleScreen proxy contributor.", LOG_PREFIX);
+        }
         ctx.logger().info("{}Registered assistant module bridge.", LOG_PREFIX);
     }
 
