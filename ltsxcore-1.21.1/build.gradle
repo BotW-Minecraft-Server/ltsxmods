@@ -116,6 +116,7 @@ configurations {
 dependencies {
     jarJar(implementation("com.github.luben:zstd-jni:1.+"))
     api("link.botwmcs.fizzy:fizzy:${fizzy_version}")
+    api("net.luckperms:api:5.4")
 
     // Example optional mod dependency with JEI
     // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime

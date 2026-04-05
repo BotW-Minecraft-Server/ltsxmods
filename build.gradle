@@ -7,10 +7,14 @@ description = 'LTSX Neo workspace (ModDevGradle modules)'
 
 def addBotwmcsRepository = { repos ->
     repos.maven {
-        name = 'reposiliteRepository'
+        name = 'BotWMCS Maven'
         url = 'https://maven.botwmcs.link/releases'
     }
 
+    repos.maven {
+        name = 'Aliyun Maven Mirror'
+        url = 'https://maven.aliyun.com/repository/public'
+    }
     repos.mavenCentral()
     repos.maven {
         name = 'Create Maven'
