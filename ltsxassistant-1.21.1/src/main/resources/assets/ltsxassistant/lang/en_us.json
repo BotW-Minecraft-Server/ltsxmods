@@ -1,4 +1,19 @@
 {
-  "itemGroup.ltsxassistant": "LTSX Assistant"
+  "itemGroup.ltsxassistant": "LTSX Assistant",
+  "screen.ltsxassistant.skin_workbench.title": "Skin Workbench",
+  "screen.ltsxassistant.skin_workbench.tab.littleskin": "LittleSkin",
+  "screen.ltsxassistant.skin_workbench.tab.localskin": "LocalSkin",
+  "screen.ltsxassistant.skin_workbench.left.settings.tooltip": "Skin settings",
+  "screen.ltsxassistant.skin_workbench.left.settings.narration": "Open skin settings",
+  "screen.ltsxassistant.skin_workbench.left.littleskin": "LittleSkin",
+  "screen.ltsxassistant.skin_workbench.left.littleskin.tooltip": "Connect or manage LittleSkin",
+  "screen.ltsxassistant.skin_workbench.left.littleskin.narration": "LittleSkin actions",
+  "screen.ltsxassistant.skin_workbench.cell.plus": "+",
+  "screen.ltsxassistant.skin_workbench.cell.narration": "Skin cell",
+  "screen.ltsxassistant.skin_workbench.cell.plus.tooltip": "Upload skin file or use URL",
+  "screen.ltsxassistant.skin_workbench.cell.select.tooltip": "Select this skin",
+  "screen.ltsxassistant.skin_workbench.cell.set.short": "S",
+  "screen.ltsxassistant.skin_workbench.cell.set.tooltip": "Set this skin",
+  "screen.ltsxassistant.skin_workbench.cell.set.narration": "Set hovered skin"
 }
 

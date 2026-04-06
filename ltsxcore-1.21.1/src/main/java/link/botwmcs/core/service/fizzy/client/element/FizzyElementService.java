@@ -23,6 +23,7 @@ import link.botwmcs.fizzy.ui.element.funstuff.slotstuff.SlotBlockerElement;
 import link.botwmcs.fizzy.ui.element.funstuff.vector.ContextMenuElement;
 import link.botwmcs.fizzy.ui.element.funstuff.vector.ProgressElement;
 import link.botwmcs.fizzy.ui.element.funstuff.vector.SimpleDraggableElement;
+import link.botwmcs.fizzy.ui.element.component.SimpleChartsElement;
 import link.botwmcs.fizzy.ui.element.icon.IconElement;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
@@ -128,6 +129,21 @@ public final class FizzyElementService implements IFizzyElementService {
         SimpleDraggableElement.Builder builder = SimpleDraggableElement.builder(contentBuilder.build());
         configure(settingsConfigurer, new DraggableSettingsBuilderBridge(builder));
         return FizzyClientBridges.wrapElement(builder.build());
+    }
+
+    @Override
+    public LtsxElement simpleDraggable(
+            Consumer<LtsxDraggableBuilder> contentConfigurer,
+            Consumer<LtsxDraggableSettingsBuilder> settingsConfigurer
+    ) {
+        return draggable(contentConfigurer, settingsConfigurer);
+    }
+
+    @Override
+    public LtsxElement simpleCharts(Consumer<LtsxChartsBuilder> contentConfigurer) {
+        SimpleChartsElement.ContentBuilder contentBuilder = SimpleChartsElement.contentBuilder();
+        configure(contentConfigurer, new ChartsBuilderBridge(contentBuilder));
+        return FizzyClientBridges.wrapElement(SimpleChartsElement.builder(contentBuilder.build()).build());
     }
 
     @Override

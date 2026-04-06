@@ -15,9 +15,15 @@ import net.minecraft.client.resources.PlayerSkin;
 public final class PlayerEntityElements implements ElementPainter {
     private static final int MIN_SIZE_PX = 32;
     private final Supplier<PlayerSkin> skinSupplier;
+    private final boolean interactive;
     private PlayerSkinWidget widget;
 
     public PlayerEntityElements() {
+        this(true);
+    }
+
+    public PlayerEntityElements(boolean interactive) {
+        this.interactive = interactive;
         Minecraft minecraft = Minecraft.getInstance();
         GameProfile profile = new GameProfile(
                 minecraft.getUser().getProfileId(),
@@ -36,6 +42,7 @@ public final class PlayerEntityElements implements ElementPainter {
                 new PlayerSkinWidget(drawX, drawY, minecraft.getEntityModels(), skinSupplier)
         );
         FizzyGuiUtils.syncWidgetBounds(widget, drawX, drawY, size, size);
+        widget.active = interactive;
     }
 
     @Override

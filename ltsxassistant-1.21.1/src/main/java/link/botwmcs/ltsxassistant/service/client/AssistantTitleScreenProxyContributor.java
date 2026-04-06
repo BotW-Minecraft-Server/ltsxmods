@@ -18,9 +18,11 @@ import link.botwmcs.fizzy.ui.element.icon.FizzyIcon;
 import link.botwmcs.fizzy.ui.pad.PixelPadSpec;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
 import link.botwmcs.ltsxassistant.service.client.elements.PlayerEntityElements;
+import link.botwmcs.ltsxassistant.service.client.screen.SkinWorkbenchScreen;
 import link.botwmcs.ltsxassistant.service.client.utils.PlayerHeadRenderUtils;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import net.minecraft.resources.ResourceLocation;
@@ -282,6 +284,10 @@ public final class AssistantTitleScreenProxyContributor implements IFizzyProxyRu
     }
 
     private static void onTodoPressed(String actionName) {
+        if ("cosmetics".equals(actionName)) {
+            Minecraft.getInstance().setScreen(new SkinWorkbenchScreen());
+            return;
+        }
         LTSXAssistant.LOGGER.info("[ltsxassistant] TODO action button pressed: {}", actionName);
     }
 

@@ -31,6 +31,10 @@ public interface IFizzyElementService {
 
     LtsxElement draggable(Consumer<LtsxDraggableBuilder> contentConfigurer, Consumer<LtsxDraggableSettingsBuilder> settingsConfigurer);
 
+    LtsxElement simpleDraggable(Consumer<LtsxDraggableBuilder> contentConfigurer, Consumer<LtsxDraggableSettingsBuilder> settingsConfigurer);
+
+    LtsxElement simpleCharts(Consumer<LtsxChartsBuilder> contentConfigurer);
+
     LtsxElement slotBlocker(boolean open);
 
     LtsxElement animate(LtsxElement element, Consumer<LtsxAnimationBuilder> configurer);
@@ -230,6 +234,22 @@ public interface IFizzyElementService {
         LtsxDraggableSettingsBuilder scrollbarGapPx(int px);
 
         LtsxDraggableSettingsBuilder minThumbHeightPx(int px);
+    }
+
+    interface LtsxChartsBuilder {
+        LtsxChartsBuilder grid(int rows, int columns);
+
+        LtsxChartsBuilder cell(int row, int column, Consumer<LtsxChartsCellBuilder> configurer);
+
+        LtsxChartsBuilder cell(int rowStart, int colStart, int rowEnd, int colEnd, Consumer<LtsxChartsCellBuilder> configurer);
+    }
+
+    interface LtsxChartsCellBuilder {
+        LtsxChartsCellBuilder element(LtsxElement element);
+
+        LtsxChartsCellBuilder elements(LtsxElement... elements);
+
+        LtsxChartsCellBuilder inner();
     }
 
     interface LtsxAnimationBuilder {

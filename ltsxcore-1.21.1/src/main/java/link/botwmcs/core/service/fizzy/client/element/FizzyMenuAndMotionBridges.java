@@ -8,6 +8,7 @@ import link.botwmcs.fizzy.ui.element.animate.vector.FreeFallAnimation;
 import link.botwmcs.fizzy.ui.element.animate.vector.RotateAnimation;
 import link.botwmcs.fizzy.ui.element.animate.vector.ScaleAnimation;
 import link.botwmcs.fizzy.ui.element.animate.vector.TintAnimation;
+import link.botwmcs.fizzy.ui.element.component.SimpleChartsElement;
 import link.botwmcs.fizzy.ui.element.funstuff.vector.ContextMenuElement;
 import link.botwmcs.fizzy.ui.element.funstuff.vector.SimpleDraggableElement;
 import net.minecraft.network.chat.Component;
@@ -345,6 +346,72 @@ final class DraggableSettingsBuilderBridge implements IFizzyElementService.LtsxD
     @Override
     public IFizzyElementService.LtsxDraggableSettingsBuilder minThumbHeightPx(int px) {
         delegate.minThumbHeightPx(px);
+        return this;
+    }
+}
+
+final class ChartsBuilderBridge implements IFizzyElementService.LtsxChartsBuilder {
+    private final SimpleChartsElement.ContentBuilder delegate;
+
+    ChartsBuilderBridge(SimpleChartsElement.ContentBuilder delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public IFizzyElementService.LtsxChartsBuilder grid(int rows, int columns) {
+        delegate.grid(rows, columns);
+        return this;
+    }
+
+    @Override
+    public IFizzyElementService.LtsxChartsBuilder cell(
+            int row,
+            int column,
+            Consumer<IFizzyElementService.LtsxChartsCellBuilder> configurer
+    ) {
+        SimpleChartsElement.CellBuilder builder = delegate.cell(row, column);
+        FizzyElementService.configure(configurer, new ChartsCellBuilderBridge(builder));
+        builder.done();
+        return this;
+    }
+
+    @Override
+    public IFizzyElementService.LtsxChartsBuilder cell(
+            int rowStart,
+            int colStart,
+            int rowEnd,
+            int colEnd,
+            Consumer<IFizzyElementService.LtsxChartsCellBuilder> configurer
+    ) {
+        SimpleChartsElement.CellBuilder builder = delegate.cell(rowStart, colStart, rowEnd, colEnd);
+        FizzyElementService.configure(configurer, new ChartsCellBuilderBridge(builder));
+        builder.done();
+        return this;
+    }
+}
+
+final class ChartsCellBuilderBridge implements IFizzyElementService.LtsxChartsCellBuilder {
+    private final SimpleChartsElement.CellBuilder delegate;
+
+    ChartsCellBuilderBridge(SimpleChartsElement.CellBuilder delegate) {
+        this.delegate = delegate;
+    }
+
+    @Override
+    public IFizzyElementService.LtsxChartsCellBuilder element(IFizzyElementService.LtsxElement element) {
+        delegate.element(FizzyElementService.unwrapElement(element));
+        return this;
+    }
+
+    @Override
+    public IFizzyElementService.LtsxChartsCellBuilder elements(IFizzyElementService.LtsxElement... elements) {
+        delegate.elements(FizzyElementService.unwrapElements(elements));
+        return this;
+    }
+
+    @Override
+    public IFizzyElementService.LtsxChartsCellBuilder inner() {
+        delegate.inner();
         return this;
     }
 }
