@@ -1,4 +1,4 @@
-package link.botwmcs.ltsxassistant.service.client.elements;
+package link.botwmcs.ltsxassistant.client.elements;
 
 import java.util.List;
 import java.util.Objects;

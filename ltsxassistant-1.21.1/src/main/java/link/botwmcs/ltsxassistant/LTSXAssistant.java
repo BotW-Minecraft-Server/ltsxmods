@@ -13,7 +13,8 @@ public final class LTSXAssistant {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public LTSXAssistant(IEventBus modEventBus, ModContainer modContainer) {
-        modContainer.registerConfig(ModConfig.Type.COMMON, Config.SPEC);
+        modContainer.registerConfig(ModConfig.Type.COMMON, Config.COMMON_SPEC);
+        modContainer.registerConfig(ModConfig.Type.CLIENT, Config.CLIENT_SPEC);
         LOGGER.info("Initialized mod {}", MODID);
     }
 }

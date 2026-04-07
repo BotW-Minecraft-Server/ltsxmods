@@ -1,4 +1,4 @@
-package link.botwmcs.ltsxassistant.service.client.utils;
+package link.botwmcs.ltsxassistant.client.utils;
 
 import com.mojang.authlib.GameProfile;
 import com.mojang.blaze3d.platform.NativeImage;

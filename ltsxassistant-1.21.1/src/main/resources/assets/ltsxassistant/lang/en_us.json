@@ -22,6 +22,16 @@
   "screen.ltsxassistant.skin_workbench.page.localskin.empty": "No local skins were found.",
   "screen.ltsxassistant.skin_workbench.page.localskin.upload.button": "Upload Local Skin",
   "screen.ltsxassistant.skin_workbench.page.localskin.upload.tooltip": "Upload a PNG skin to local storage",
-  "screen.ltsxassistant.skin_workbench.page.localskin.upload.narration": "Upload local skin"
+  "screen.ltsxassistant.skin_workbench.page.localskin.upload.narration": "Upload local skin",
+  "screen.ltsxassistant.music_player.title": "Music Player",
+  "screen.ltsxassistant.music_player.entry": "Music Player",
+  "screen.ltsxassistant.music_player.entry.tooltip": "Open music player controls",
+  "screen.ltsxassistant.music_player.entry.narration": "Open music player screen",
+  "screen.ltsxassistant.music_player.toggle": "Play/Pause",
+  "screen.ltsxassistant.music_player.stop": "Stop",
+  "screen.ltsxassistant.music_player.stem_prev": "Stem -",
+  "screen.ltsxassistant.music_player.stem_next": "Stem +",
+  "screen.ltsxassistant.music_player.mode.classic": "Mode: Classic",
+  "screen.ltsxassistant.music_player.mode.modern": "Mode: Modern"
 }
 

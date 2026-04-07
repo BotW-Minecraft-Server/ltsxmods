@@ -1,4 +1,4 @@
-package link.botwmcs.ltsxassistant.service.client;
+package link.botwmcs.ltsxassistant.client;
 
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -17,9 +17,9 @@ import link.botwmcs.fizzy.ui.element.component.FizzyComponentElement;
 import link.botwmcs.fizzy.ui.element.icon.FizzyIcon;
 import link.botwmcs.fizzy.ui.pad.PixelPadSpec;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
-import link.botwmcs.ltsxassistant.service.client.elements.PlayerEntityElements;
-import link.botwmcs.ltsxassistant.service.client.screen.SkinWorkbenchScreen;
-import link.botwmcs.ltsxassistant.service.client.utils.PlayerHeadRenderUtils;
+import link.botwmcs.ltsxassistant.client.elements.PlayerEntityElements;
+import link.botwmcs.ltsxassistant.client.screen.SkinWorkbenchScreen;
+import link.botwmcs.ltsxassistant.client.utils.PlayerHeadRenderUtils;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.Minecraft;

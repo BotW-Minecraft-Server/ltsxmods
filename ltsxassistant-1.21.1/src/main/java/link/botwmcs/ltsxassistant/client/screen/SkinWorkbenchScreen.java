@@ -1,4 +1,4 @@
-package link.botwmcs.ltsxassistant.service.client.screen;
+package link.botwmcs.ltsxassistant.client.screen;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,14 +19,14 @@ import link.botwmcs.fizzy.ui.frame.FrameMetrics;
 import link.botwmcs.fizzy.ui.frame.FramePainter;
 import link.botwmcs.fizzy.ui.host.FizzyScreenHost;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
-import link.botwmcs.ltsxassistant.service.client.elements.AutoWrapCellListElement;
-import link.botwmcs.ltsxassistant.service.client.elements.BadgeComponentElement;
-import link.botwmcs.ltsxassistant.service.client.elements.DarkPanelElement;
-import link.botwmcs.ltsxassistant.service.client.elements.HoverOverlayPadElement;
-import link.botwmcs.ltsxassistant.service.client.elements.PlayerEntityElements;
-import link.botwmcs.ltsxassistant.service.client.elements.SkinSourceTabElement;
-import link.botwmcs.ltsxassistant.service.client.utils.PlayerHeadRenderUtils;
-import link.botwmcs.ltsxassistant.service.client.utils.PlayerSkinPaletteUtils;
+import link.botwmcs.ltsxassistant.client.elements.AutoWrapCellListElement;
+import link.botwmcs.ltsxassistant.client.elements.BadgeComponentElement;
+import link.botwmcs.ltsxassistant.client.elements.DarkPanelElement;
+import link.botwmcs.ltsxassistant.client.elements.HoverOverlayPadElement;
+import link.botwmcs.ltsxassistant.client.elements.PlayerEntityElements;
+import link.botwmcs.ltsxassistant.client.elements.SkinSourceTabElement;
+import link.botwmcs.ltsxassistant.client.utils.PlayerHeadRenderUtils;
+import link.botwmcs.ltsxassistant.client.utils.PlayerSkinPaletteUtils;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;

@@ -1,9 +1,9 @@
-package link.botwmcs.ltsxassistant.service.client.elements;
+package link.botwmcs.ltsxassistant.client.elements;
 
 import link.botwmcs.fizzy.ui.element.ElementPainter;
 import link.botwmcs.fizzy.ui.element.ElementType;
 import link.botwmcs.fizzy.ui.element.icon.IconElement;
-import link.botwmcs.ltsxassistant.service.client.utils.PlayerHeadRenderUtils;
+import link.botwmcs.ltsxassistant.client.utils.PlayerHeadRenderUtils;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.resources.ResourceLocation;
 

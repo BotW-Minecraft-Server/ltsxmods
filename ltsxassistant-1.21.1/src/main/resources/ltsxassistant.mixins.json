@@ -3,7 +3,10 @@
   "package": "link.botwmcs.ltsxassistant.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
-  "client": [],
+  "client": [
+    "soundengine.MixinMusicManager",
+    "soundengine.MixinScreenBackgroundMusic"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

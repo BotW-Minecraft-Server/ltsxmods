@@ -2,11 +2,21 @@ package link.botwmcs.ltsxassistant.core;
 
 import link.botwmcs.core.api.command.LtsxCommandRegistrar;
 import link.botwmcs.core.api.fizzier.contrib.IFizzyProxyRuleContributor;
+import link.botwmcs.core.api.fizzier.proxy.IFizzyProxyService;
 import link.botwmcs.core.api.module.CoreModuleContext;
 import link.botwmcs.core.api.module.ICoreModule;
 import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
-import link.botwmcs.ltsxassistant.service.client.AssistantTitleScreenProxyContributor;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicPlaybackApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicSceneApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicServerControlApi;
+import link.botwmcs.ltsxassistant.net.soundengine.AssistantMusicNetworkBootstrap;
+import link.botwmcs.ltsxassistant.client.AssistantMusicScreenProxyContributor;
+import link.botwmcs.ltsxassistant.client.AssistantSoundOptionsMusicPlayerProxyContributor;
+import link.botwmcs.ltsxassistant.client.AssistantTitleScreenProxyContributor;
+import link.botwmcs.ltsxassistant.service.soundengine.AssistantMusicEngineService;
+import link.botwmcs.ltsxassistant.service.soundengine.AssistantMusicServerControlService;
 import net.minecraft.network.chat.Component;
 import net.neoforged.fml.loading.FMLEnvironment;
 
@@ -29,10 +39,36 @@ public final class AssistantCoreModule implements ICoreModule {
 
     @Override
     public void onRegister(CoreModuleContext ctx) {
-        if (FMLEnvironment.dist.isClient()) {
-            CoreServices.registerMulti(IFizzyProxyRuleContributor.class, new AssistantTitleScreenProxyContributor());
-            ctx.logger().info("{}Registered assistant TitleScreen proxy contributor.", LOG_PREFIX);
+        MusicPlaybackApi playbackApi = CoreServices.registerIfAbsent(MusicPlaybackApi.class, new AssistantMusicEngineService());
+        if (playbackApi instanceof MusicSceneApi sceneApi) {
+            CoreServices.registerIfAbsent(MusicSceneApi.class, sceneApi);
+        } else {
+            CoreServices.registerIfAbsent(MusicSceneApi.class, new AssistantMusicEngineService());
         }
+        if (playbackApi instanceof MusicCoverApi coverApi) {
+            CoreServices.registerIfAbsent(MusicCoverApi.class, coverApi);
+        }
+        CoreServices.registerIfAbsent(MusicServerControlApi.class, new AssistantMusicServerControlService());
+        AssistantMusicNetworkBootstrap.bootstrap(ctx.logger());
+
+        if (FMLEnvironment.dist.isClient()) {
+            AssistantTitleScreenProxyContributor titleContributor = new AssistantTitleScreenProxyContributor();
+            AssistantMusicScreenProxyContributor musicContributor = new AssistantMusicScreenProxyContributor();
+            AssistantSoundOptionsMusicPlayerProxyContributor soundOptionsContributor = new AssistantSoundOptionsMusicPlayerProxyContributor();
+            CoreServices.registerMulti(IFizzyProxyRuleContributor.class, titleContributor);
+            CoreServices.registerMulti(IFizzyProxyRuleContributor.class, musicContributor);
+            CoreServices.registerMulti(IFizzyProxyRuleContributor.class, soundOptionsContributor);
+            CoreServices.getOptional(IFizzyProxyService.class).ifPresent(proxyService -> {
+                titleContributor.contribute(proxyService);
+                musicContributor.contribute(proxyService);
+                soundOptionsContributor.contribute(proxyService);
+                ctx.logger().info("{}Applied assistant proxy rules immediately. count={}", LOG_PREFIX, proxyService.ruleCount());
+            });
+            ctx.logger().info("{}Registered assistant TitleScreen proxy contributor.", LOG_PREFIX);
+            ctx.logger().info("{}Registered assistant music screen proxy contributor.", LOG_PREFIX);
+            ctx.logger().info("{}Registered assistant sound options music entry proxy contributor.", LOG_PREFIX);
+        }
+        ctx.logger().info("{}Registered assistant music engine API skeleton (M1).", LOG_PREFIX);
         ctx.logger().info("{}Registered assistant module bridge.", LOG_PREFIX);
     }
 

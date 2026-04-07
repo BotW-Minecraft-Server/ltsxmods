@@ -1,4 +1,4 @@
-package link.botwmcs.ltsxassistant.service.client.elements;
+package link.botwmcs.ltsxassistant.client.elements;
 
 import com.mojang.authlib.GameProfile;
 import java.util.List;

@@ -75,6 +75,7 @@ configurations {
 dependencies {
     // All workspace feature mods depend on core.
     implementation project(':ltsxcore')
+    implementation 'com.github.st-h:TarsosDSP:2.4.1'
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {
