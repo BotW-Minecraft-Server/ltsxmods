@@ -2,7 +2,7 @@ package link.botwmcs.ltsxassistant;
 
 import net.neoforged.neoforge.common.ModConfigSpec;
 
-public final class ModConfigSpecHolder {
+public final class Config {
     public static final ModConfigSpec SPEC;
 
     static {
@@ -12,6 +12,6 @@ public final class ModConfigSpecHolder {
         SPEC = builder.build();
     }
 
-    private ModConfigSpecHolder() {
+    private Config() {
     }
 }

@@ -14,6 +14,14 @@
   "screen.ltsxassistant.skin_workbench.cell.select.tooltip": "Select this skin",
   "screen.ltsxassistant.skin_workbench.cell.set.short": "S",
   "screen.ltsxassistant.skin_workbench.cell.set.tooltip": "Set this skin",
-  "screen.ltsxassistant.skin_workbench.cell.set.narration": "Set hovered skin"
+  "screen.ltsxassistant.skin_workbench.cell.set.narration": "Set hovered skin",
+  "screen.ltsxassistant.skin_workbench.page.littleskin.disconnected": "LittleSkin is not connected yet.",
+  "screen.ltsxassistant.skin_workbench.page.littleskin.connect.button": "Connect LittleSkin",
+  "screen.ltsxassistant.skin_workbench.page.littleskin.connect.tooltip": "Open browser to connect LittleSkin",
+  "screen.ltsxassistant.skin_workbench.page.littleskin.connect.narration": "Connect LittleSkin account",
+  "screen.ltsxassistant.skin_workbench.page.localskin.empty": "No local skins were found.",
+  "screen.ltsxassistant.skin_workbench.page.localskin.upload.button": "Upload Local Skin",
+  "screen.ltsxassistant.skin_workbench.page.localskin.upload.tooltip": "Upload a PNG skin to local storage",
+  "screen.ltsxassistant.skin_workbench.page.localskin.upload.narration": "Upload local skin"
 }
 

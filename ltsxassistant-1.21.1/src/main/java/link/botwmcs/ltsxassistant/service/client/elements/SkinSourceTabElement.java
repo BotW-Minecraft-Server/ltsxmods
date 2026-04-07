@@ -141,8 +141,18 @@ public final class SkinSourceTabElement implements ElementPainter {
      * but override selected tab background to blend with the dark workbench panel.
      */
     private static final class WorkbenchTabButton extends TabButton {
+        private final TabManager localTabManager;
+        private final Tab localTab;
+
         private WorkbenchTabButton(TabManager tabManager, Tab tab, int width, int height) {
             super(tabManager, tab, width, height);
+            this.localTabManager = tabManager;
+            this.localTab = tab;
+        }
+
+        @Override
+        public void onClick(double mouseX, double mouseY) {
+            localTabManager.setCurrentTab(localTab, true);
         }
 
         @Override
