@@ -562,22 +562,40 @@ public final class AssistantMusicEngineService
     private int resolveSceneStemTrack() {
         Minecraft minecraft = Minecraft.getInstance();
         Screen screen = minecraft.screen;
+        if (screen != null && "link.botwmcs.ltsxassistant.client.screen.MusicPlayerScreen".equals(screen.getClass().getName())) {
+            return -1;
+        }
         if (screen instanceof OptionsScreen || (screen != null && screen.getClass().getName().startsWith("net.minecraft.client.gui.screens.options."))) {
-            return 0; // 01/02
+            return 5;
         }
         if (screen instanceof PauseScreen) {
-            return 1; // 03/04
+            return 0;
         }
         if (screen instanceof TitleScreen) {
-            return 3; // 07/08
+            return 7;
+        }
+        if (isWorldLoadingScreen(screen)) {
+            return 6;
         }
         if (screen != null) {
-            return 2; // 05/06
+            return 2;
         }
         if (minecraft.level != null) {
-            return minecraft.level.isDay() ? 3 : 1; // day 07/08, night 03/04
+            return minecraft.level.isDay() ? 4 : 1;
         }
         return 3;
+    }
+
+    private static boolean isWorldLoadingScreen(@Nullable Screen screen) {
+        if (screen == null) {
+            return false;
+        }
+        String className = screen.getClass().getName().toLowerCase(Locale.ROOT);
+        return className.endsWith(".receivinglevelscreen")
+                || className.endsWith(".progressscreen")
+                || className.endsWith(".worldloadingscreen")
+                || className.endsWith(".levelloadingscreen")
+                || className.endsWith(".genericdirtmessagescreen");
     }
 
     private void startClassic(Music music) {

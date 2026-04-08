@@ -3,7 +3,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/a_familiar_room"
+        "name": "ltsxassistant:music/game/a_familiar_room",
+        "display_name": "A Familiar Room",
+        "author": "Aaron Cherof"
       }
     ]
   },
@@ -11,7 +13,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/an_ordinary_day"
+        "name": "ltsxassistant:music/game/an_ordinary_day",
+        "author": "Kumi Tanioka",
+        "display_name": "An Ordinary Day"
       }
     ]
   },
@@ -19,7 +23,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/ancestry"
+        "name": "ltsxassistant:music/game/ancestry",
+        "author": "Lena Raine",
+        "display_name": "Ancestry"
       }
     ]
   },
@@ -27,7 +33,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/bromeliad"
+        "name": "ltsxassistant:music/game/bromeliad",
+        "author": "Aaron Cherof",
+        "display_name": "Bromeliad"
       }
     ]
   },
@@ -35,7 +43,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/clark"
+        "name": "ltsxassistant:music/game/clark",
+        "author": "C418",
+        "display_name": "Clark"
       }
     ]
   },
@@ -43,7 +53,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/comforting_memories"
+        "name": "ltsxassistant:music/game/comforting_memories",
+        "author": "Kumi Tanioka",
+        "display_name": "Comforting Memories"
       }
     ]
   },
@@ -51,7 +63,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/creative/aria_math"
+        "name": "ltsxassistant:music/game/creative/aria_math",
+        "author": "C418",
+        "display_name": "Aria Math"
       }
     ]
   },
@@ -59,7 +73,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/creative/biome_fest"
+        "name": "ltsxassistant:music/game/creative/biome_fest",
+        "author": "C418",
+        "display_name": "Biome Fest"
       }
     ]
   },
@@ -67,7 +83,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/creative/blind_spots"
+        "name": "ltsxassistant:music/game/creative/blind_spots",
+        "author": "C418",
+        "display_name": "Blind Spots"
       }
     ]
   },
@@ -75,7 +93,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/creative/dreiton"
+        "name": "ltsxassistant:music/game/creative/dreiton",
+        "author": "C418",
+        "display_name": "Dreiton"
       }
     ]
   },
@@ -83,7 +103,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/creative/haunt_muskie"
+        "name": "ltsxassistant:music/game/creative/haunt_muskie",
+        "author": "C418",
+        "display_name": "Haunt Muskie"
       }
     ]
   },
@@ -91,7 +113,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/creative/taswell"
+        "name": "ltsxassistant:music/game/creative/taswell",
+        "author": "C418",
+        "display_name": "Taswell"
       }
     ]
   },
@@ -99,7 +123,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/crescent_dunes"
+        "name": "ltsxassistant:music/game/crescent_dunes",
+        "author": "Aaron Cherof",
+        "display_name": "Crescent Dunes"
       }
     ]
   },
@@ -107,7 +133,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/danny"
+        "name": "ltsxassistant:music/game/danny",
+        "author": "C418",
+        "display_name": "Danny"
       }
     ]
   },
@@ -115,7 +143,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/deeper"
+        "name": "ltsxassistant:music/game/deeper",
+        "author": "C418",
+        "display_name": "Deeper"
       }
     ]
   },
@@ -123,7 +153,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/dry_hands"
+        "name": "ltsxassistant:music/game/dry_hands",
+        "author": "C418",
+        "display_name": "Dry Hands"
       }
     ]
   },
@@ -131,7 +163,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/echo_in_the_wind"
+        "name": "ltsxassistant:music/game/echo_in_the_wind",
+        "author": "C418",
+        "display_name": "Echo In The Wind"
       }
     ]
   },
@@ -139,7 +173,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/eld_unknown"
+        "name": "ltsxassistant:music/game/eld_unknown",
+        "author": "Lena Raine",
+        "display_name": "Eld Unknown"
       }
     ]
   },
@@ -147,7 +183,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/end/alpha"
+        "name": "ltsxassistant:music/game/end/alpha",
+        "author": "C418",
+        "display_name": "Alpha"
       }
     ]
   },
@@ -155,7 +193,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/end/boss"
+        "name": "ltsxassistant:music/game/end/boss",
+        "author": "C418",
+        "display_name": "Boss"
       }
     ]
   },
@@ -163,7 +203,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/end/the_end"
+        "name": "ltsxassistant:music/game/end/the_end",
+        "author": "C418",
+        "display_name": "The End"
       }
     ]
   },
@@ -171,7 +213,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/endless"
+        "name": "ltsxassistant:music/game/endless",
+        "author": "C418",
+        "display_name": "Endless"
       }
     ]
   },
@@ -179,7 +223,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/featherfall"
+        "name": "ltsxassistant:music/game/featherfall",
+        "author": "Aaron Cherof",
+        "display_name": "Featherfall"
       }
     ]
   },
@@ -187,7 +233,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/floating_dream"
+        "name": "ltsxassistant:music/game/floating_dream",
+        "author": "Kumi Tanioka",
+        "display_name": "Floating Dream"
       }
     ]
   },
@@ -195,7 +243,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/haggstrom"
+        "name": "ltsxassistant:music/game/haggstrom",
+        "author": "C418",
+        "display_name": "Haggstrom"
       }
     ]
   },
@@ -203,7 +253,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/infinite_amethyst"
+        "name": "ltsxassistant:music/game/infinite_amethyst",
+        "author": "Lena Raine",
+        "display_name": "Infinite Amethyst"
       }
     ]
   },
@@ -211,7 +263,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/key"
+        "name": "ltsxassistant:music/game/key",
+        "author": "C418",
+        "display_name": "Key"
       }
     ]
   },
@@ -219,7 +273,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/komorebi"
+        "name": "ltsxassistant:music/game/komorebi",
+        "author": "C418",
+        "display_name": "Komorebi"
       }
     ]
   },
@@ -227,7 +283,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/left_to_bloom"
+        "name": "ltsxassistant:music/game/left_to_bloom",
+        "author": "Lena Raine",
+        "display_name": "Left To Bloom"
       }
     ]
   },
@@ -235,7 +293,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/living_mice"
+        "name": "ltsxassistant:music/game/living_mice",
+        "author": "C418",
+        "display_name": "Living Mice"
       }
     ]
   },
@@ -243,7 +303,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/mice_on_venus"
+        "name": "ltsxassistant:music/game/mice_on_venus",
+        "author": "C418",
+        "display_name": "Mice On Venus"
       }
     ]
   },
@@ -251,7 +313,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/minecraft"
+        "name": "ltsxassistant:music/game/minecraft",
+        "author": "C418",
+        "display_name": "Minecraft"
       }
     ]
   },
@@ -259,7 +323,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/nether/ballad_of_the_cats"
+        "name": "ltsxassistant:music/game/nether/ballad_of_the_cats",
+        "author": "C418",
+        "display_name": "Ballad Of The Cats"
       }
     ]
   },
@@ -267,7 +333,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/nether/concrete_halls"
+        "name": "ltsxassistant:music/game/nether/concrete_halls",
+        "author": "C418",
+        "display_name": "Concrete Halls"
       }
     ]
   },
@@ -275,7 +343,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/nether/crimson_forest/chrysopoeia"
+        "name": "ltsxassistant:music/game/nether/crimson_forest/chrysopoeia",
+        "author": "Lena Raine",
+        "display_name": "Chrysopoeia"
       }
     ]
   },
@@ -283,7 +353,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/nether/dead_voxel"
+        "name": "ltsxassistant:music/game/nether/dead_voxel",
+        "author": "C418",
+        "display_name": "Dead Voxel"
       }
     ]
   },
@@ -291,7 +363,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/nether/nether_wastes/rubedo"
+        "name": "ltsxassistant:music/game/nether/nether_wastes/rubedo",
+        "author": "Lena Raine",
+        "display_name": "Rubedo"
       }
     ]
   },
@@ -299,7 +373,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/nether/soulsand_valley/so_below"
+        "name": "ltsxassistant:music/game/nether/soulsand_valley/so_below",
+        "author": "Lena Raine",
+        "display_name": "So Below"
       }
     ]
   },
@@ -307,7 +383,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/nether/warmth"
+        "name": "ltsxassistant:music/game/nether/warmth",
+        "author": "C418",
+        "display_name": "Warmth"
       }
     ]
   },
@@ -315,7 +393,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/one_more_day"
+        "name": "ltsxassistant:music/game/one_more_day",
+        "author": "Lena Raine",
+        "display_name": "One More Day"
       }
     ]
   },
@@ -323,7 +403,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/oxygene"
+        "name": "ltsxassistant:music/game/oxygene",
+        "author": "C418",
+        "display_name": "Oxygene"
       }
     ]
   },
@@ -331,7 +413,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/pokopoko"
+        "name": "ltsxassistant:music/game/pokopoko",
+        "author": "Kumi Tanioka",
+        "display_name": "Pokopoko"
       }
     ]
   },
@@ -339,7 +423,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/puzzlebox"
+        "name": "ltsxassistant:music/game/puzzlebox",
+        "author": "C418",
+        "display_name": "Puzzlebox"
       }
     ]
   },
@@ -347,7 +433,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/stand_tall"
+        "name": "ltsxassistant:music/game/stand_tall",
+        "author": "Lena Raine",
+        "display_name": "Stand Tall"
       }
     ]
   },
@@ -355,7 +443,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/subwoofer_lullaby"
+        "name": "ltsxassistant:music/game/subwoofer_lullaby",
+        "author": "C418",
+        "display_name": "Subwoofer Lullaby"
       }
     ]
   },
@@ -363,7 +453,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/swamp/aerie"
+        "name": "ltsxassistant:music/game/swamp/aerie",
+        "author": "Lena Raine",
+        "display_name": "Aerie"
       }
     ]
   },
@@ -371,7 +463,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/swamp/firebugs"
+        "name": "ltsxassistant:music/game/swamp/firebugs",
+        "author": "Lena Raine",
+        "display_name": "Firebugs"
       }
     ]
   },
@@ -379,7 +473,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/swamp/labyrinthine"
+        "name": "ltsxassistant:music/game/swamp/labyrinthine",
+        "author": "Lena Raine",
+        "display_name": "Labyrinthine"
       }
     ]
   },
@@ -387,7 +483,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/sweden"
+        "name": "ltsxassistant:music/game/sweden",
+        "author": "C418",
+        "display_name": "Sweden"
       }
     ]
   },
@@ -395,7 +493,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/watcher"
+        "name": "ltsxassistant:music/game/watcher",
+        "author": "C418",
+        "display_name": "Watcher"
       }
     ]
   },
@@ -403,7 +503,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/water/axolotl"
+        "name": "ltsxassistant:music/game/water/axolotl",
+        "author": "C418",
+        "display_name": "Axolotl"
       }
     ]
   },
@@ -411,7 +513,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/water/dragon_fish"
+        "name": "ltsxassistant:music/game/water/dragon_fish",
+        "author": "C418",
+        "display_name": "Dragon Fish"
       }
     ]
   },
@@ -419,7 +523,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/water/shuniji"
+        "name": "ltsxassistant:music/game/water/shuniji",
+        "author": "C418",
+        "display_name": "Shuniji"
       }
     ]
   },
@@ -427,7 +533,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/wending"
+        "name": "ltsxassistant:music/game/wending",
+        "author": "C418",
+        "display_name": "Wending"
       }
     ]
   },
@@ -435,7 +543,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/wet_hands"
+        "name": "ltsxassistant:music/game/wet_hands",
+        "author": "C418",
+        "display_name": "Wet Hands"
       }
     ]
   },
@@ -443,7 +553,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/game/yakusoku"
+        "name": "ltsxassistant:music/game/yakusoku",
+        "author": "C418",
+        "display_name": "Yakusoku"
       }
     ]
   },
@@ -451,7 +563,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/menu/beginning_2"
+        "name": "ltsxassistant:music/menu/beginning_2",
+        "author": "C418",
+        "display_name": "Beginning 2"
       }
     ]
   },
@@ -459,7 +573,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/menu/floating_trees"
+        "name": "ltsxassistant:music/menu/floating_trees",
+        "author": "C418",
+        "display_name": "Floating Trees"
       }
     ]
   },
@@ -467,7 +583,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/menu/moog_city_2"
+        "name": "ltsxassistant:music/menu/moog_city_2",
+        "author": "C418",
+        "display_name": "Moog City 2"
       }
     ]
   },
@@ -475,7 +593,9 @@
     "sounds": [
       {
         "stream": true,
-        "name": "ltsxassistant:music/menu/mutation"
+        "name": "ltsxassistant:music/menu/mutation",
+        "author": "C418",
+        "display_name": "Mutation"
       }
     ]
   }

@@ -18,6 +18,9 @@ import net.neoforged.neoforge.event.AddPackFindersEvent;
 public final class LTSXAssistantClient {
     private static final ResourceLocation CLASSIC_ALBUM_PACK_PATH =
             ResourceLocation.fromNamespaceAndPath(LTSXAssistant.MODID, "resourcepacks/minecraft_classic_album");
+    private static final ResourceLocation DIRECT_IMPACT_PACK_PATH =
+            ResourceLocation.fromNamespaceAndPath(LTSXAssistant.MODID, "resourcepacks/direct_impact_album");
+
 
     private static boolean initialized;
 
@@ -41,6 +44,14 @@ public final class LTSXAssistantClient {
                 CLASSIC_ALBUM_PACK_PATH,
                 PackType.CLIENT_RESOURCES,
                 Component.translatable("pack.ltsxassistant.minecraft_classic_album"),
+                PackSource.BUILT_IN,
+                true,
+                Pack.Position.BOTTOM
+        );
+        event.addPackFinders(
+                DIRECT_IMPACT_PACK_PATH,
+                PackType.CLIENT_RESOURCES,
+                Component.translatable("pack.ltsxassistant.direct_impact_album"),
                 PackSource.BUILT_IN,
                 true,
                 Pack.Position.BOTTOM

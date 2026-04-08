@@ -1,11 +1,9 @@
 package link.botwmcs.ltsxassistant.service.soundengine;
 
-import be.tarsos.dsp.AudioEvent;
-import be.tarsos.dsp.GainProcessor;
-import be.tarsos.dsp.io.TarsosDSPAudioFormat;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -42,6 +40,10 @@ public final class AssistantModernMusicPlayer {
     private static final int BYTES_PER_STEREO_FRAME = 4;
     private static final int CROSSFADE_MILLIS = 450;
     private static final int IDLE_SLEEP_MILLIS = 10;
+    private static final int WAV_FORMAT_PCM = 0x0001;
+    private static final int WAV_FORMAT_IEEE_FLOAT = 0x0003;
+    private static final int WAV_FORMAT_EXTENSIBLE = 0xFFFE;
+    private static final int STREAM_DECODE_CHUNK_BYTES = 64 * 1024;
 
     private final Object stateLock = new Object();
 
@@ -55,8 +57,6 @@ public final class AssistantModernMusicPlayer {
     private SourceDataLine outputLine;
     @Nullable
     private AudioFormat outputFormat;
-    @Nullable
-    private DspGainPipeline gainPipeline;
     @Nullable
     private Thread audioThread;
 
@@ -380,25 +380,21 @@ public final class AssistantModernMusicPlayer {
             }
         }
 
-        DspGainPipeline pipeline = gainPipeline;
-        if (pipeline == null) {
-            return;
-        }
+        int sampleCount = frames * 2;
         if (work.fadeRemaining() > 0 && fadingStemTrack >= 0) {
             double progress = 1.0D - ((double) work.fadeRemaining() / (double) work.fadeTotal());
             double fadeInGain = clamp01(progress);
             double fadeOutGain = 1.0D - fadeInGain;
-            pipeline.applyGain(activeBuffer, fadeInGain);
-            pipeline.applyGain(fadeBuffer, fadeOutGain);
+            applyGain(activeBuffer, sampleCount, fadeInGain);
+            applyGain(fadeBuffer, sampleCount, fadeOutGain);
         }
 
-        int sampleCount = frames * 2;
         for (int sample = 0; sample < sampleCount; sample++) {
             mixedBuffer[sample] = activeBuffer[sample] + fadeBuffer[sample];
             activeBuffer[sample] = 0.0f;
             fadeBuffer[sample] = 0.0f;
         }
-        pipeline.applyMasterGain(mixedBuffer);
+        applyGain(mixedBuffer, sampleCount, 1.0D);
     }
 
     private int writePcmChunk(int frames, float[] mixedBuffer, byte[] pcmBuffer) {
@@ -427,7 +423,6 @@ public final class AssistantModernMusicPlayer {
             line.start();
             outputLine = line;
             outputFormat = desired;
-            gainPipeline = new DspGainPipeline(sampleRate);
             return true;
         } catch (LineUnavailableException lineUnavailableException) {
             LTSXAssistant.LOGGER.warn("[ltsxassistant] Failed to open modern music output line: {}", lineUnavailableException.getMessage());
@@ -439,7 +434,6 @@ public final class AssistantModernMusicPlayer {
         SourceDataLine line = outputLine;
         outputLine = null;
         outputFormat = null;
-        gainPipeline = null;
         if (line == null) {
             return;
         }
@@ -462,18 +456,32 @@ public final class AssistantModernMusicPlayer {
         List<ResourceLocation> candidates = resolveWavCandidates(requestedTrackId);
         for (ResourceLocation candidate : candidates) {
             try (InputStream rawInput = resourceManager.open(candidate);
+                 BufferedInputStream bufferedInput = new BufferedInputStream(rawInput)) {
+                ModernWavTrack track = decodeRiffPcmWavTrack(candidate, bufferedInput);
+                if (track != null) {
+                    return track;
+                }
+            } catch (IOException ignored) {
+                // Try next candidate path.
+            } catch (Exception exception) {
+                LTSXAssistant.LOGGER.warn("[ltsxassistant] Failed to decode modern WAV track '{}': {}",
+                        candidate,
+                        exception.getMessage());
+            }
+
+            try (InputStream rawInput = resourceManager.open(candidate);
                  BufferedInputStream bufferedInput = new BufferedInputStream(rawInput);
                  AudioInputStream sourceStream = AudioSystem.getAudioInputStream(bufferedInput)) {
-                ModernWavTrack track = decodeWavTrack(candidate, sourceStream);
+                ModernWavTrack track = decodeAudioSystemWavTrack(candidate, sourceStream);
                 if (track != null) {
                     return track;
                 }
             } catch (IOException ignored) {
                 // Try next candidate path.
             } catch (UnsupportedAudioFileException ignored) {
-                // Not a PCM wav stream; try next candidate.
+                // Unsupported wav payload; try next candidate.
             } catch (Exception exception) {
-                LTSXAssistant.LOGGER.warn("[ltsxassistant] Failed to load modern WAV track '{}': {}",
+                LTSXAssistant.LOGGER.warn("[ltsxassistant] Failed to decode fallback WAV track '{}': {}",
                         candidate,
                         exception.getMessage());
             }
@@ -491,7 +499,7 @@ public final class AssistantModernMusicPlayer {
     }
 
     @Nullable
-    private static ModernWavTrack decodeWavTrack(ResourceLocation sourceId, AudioInputStream sourceStream) throws IOException {
+    private static ModernWavTrack decodeAudioSystemWavTrack(ResourceLocation sourceId, AudioInputStream sourceStream) throws IOException {
         AudioFormat sourceFormat = sourceStream.getFormat();
         int sourceChannels = sourceFormat.getChannels();
         if (sourceChannels < 2) {
@@ -517,7 +525,7 @@ public final class AssistantModernMusicPlayer {
                 return null;
             }
             int sampleRate = Math.max(8_000, Math.round(pcmFormat.getSampleRate()));
-            float[] samples = new float[frameCount * sourceChannels];
+            short[] samples = new short[frameCount * sourceChannels];
             int byteIndex = 0;
             int sampleIndex = 0;
             for (int frame = 0; frame < frameCount; frame++) {
@@ -525,12 +533,332 @@ public final class AssistantModernMusicPlayer {
                     int low = pcmBytes[byteIndex++] & 0xFF;
                     int high = pcmBytes[byteIndex++];
                     short pcmSample = (short) ((high << 8) | low);
-                    samples[sampleIndex++] = pcmSample / 32768.0f;
+                    samples[sampleIndex++] = pcmSample;
                 }
             }
             int stemCount = Math.max(1, Math.min(MAX_STEMS, sourceChannels / 2));
             return new ModernWavTrack(sourceId, sampleRate, sourceChannels, stemCount, frameCount, samples);
         }
+    }
+
+    @Nullable
+    private static ModernWavTrack decodeRiffPcmWavTrack(ResourceLocation sourceId, InputStream inputStream) throws IOException {
+        byte[] riffHeader = inputStream.readNBytes(12);
+        if (riffHeader.length < 12 || !equalsAscii(riffHeader, 0, "RIFF") || !equalsAscii(riffHeader, 8, "WAVE")) {
+            return null;
+        }
+
+        WavFormatInfo formatInfo = null;
+        while (true) {
+            byte[] chunkHeader = inputStream.readNBytes(8);
+            if (chunkHeader.length < 8) {
+                return null;
+            }
+            String chunkId = ascii(chunkHeader, 0, 4);
+            long chunkSize = uint32LE(chunkHeader, 4);
+            if (chunkSize < 0L) {
+                return null;
+            }
+
+            if ("fmt ".equals(chunkId)) {
+                formatInfo = parseWavFormatChunk(inputStream, chunkSize);
+            } else if ("data".equals(chunkId)) {
+                if (formatInfo == null) {
+                    skipFully(inputStream, chunkSize);
+                } else {
+                    return decodeRiffDataChunk(sourceId, inputStream, chunkSize, formatInfo);
+                }
+            } else {
+                skipFully(inputStream, chunkSize);
+            }
+
+            if ((chunkSize & 1L) != 0L) {
+                if (inputStream.read() < 0) {
+                    return null;
+                }
+            }
+        }
+    }
+
+    @Nullable
+    private static WavFormatInfo parseWavFormatChunk(InputStream inputStream, long chunkSize) throws IOException {
+        if (chunkSize < 16L || chunkSize > Integer.MAX_VALUE) {
+            skipFully(inputStream, chunkSize);
+            return null;
+        }
+        byte[] fmtBytes = inputStream.readNBytes((int) chunkSize);
+        if (fmtBytes.length < 16) {
+            return null;
+        }
+
+        int rawFormatTag = uint16LE(fmtBytes, 0);
+        int channels = uint16LE(fmtBytes, 2);
+        int sampleRate = (int) uint32LE(fmtBytes, 4);
+        int blockAlign = uint16LE(fmtBytes, 12);
+        int bitsPerSample = uint16LE(fmtBytes, 14);
+
+        int resolvedFormatTag = rawFormatTag;
+        if (rawFormatTag == WAV_FORMAT_EXTENSIBLE && fmtBytes.length >= 40) {
+            int validBitsPerSample = uint16LE(fmtBytes, 18);
+            int subFormatTag = uint16LE(fmtBytes, 24);
+            if (validBitsPerSample > 0) {
+                bitsPerSample = validBitsPerSample;
+            }
+            if (subFormatTag > 0) {
+                resolvedFormatTag = subFormatTag;
+            }
+        }
+
+        int bytesPerSample = (blockAlign > 0 && channels > 0)
+                ? Math.max(1, blockAlign / channels)
+                : Math.max(1, (Math.max(1, bitsPerSample) + 7) / 8);
+        if (bitsPerSample <= 0) {
+            bitsPerSample = bytesPerSample * 8;
+        }
+        return new WavFormatInfo(resolvedFormatTag, channels, sampleRate, bitsPerSample, bytesPerSample, blockAlign);
+    }
+
+    @Nullable
+    private static ModernWavTrack decodeRiffDataChunk(
+            ResourceLocation sourceId,
+            InputStream inputStream,
+            long chunkSize,
+            WavFormatInfo formatInfo
+    ) throws IOException {
+        if (formatInfo.channels() < 2) {
+            skipFully(inputStream, chunkSize);
+            return null;
+        }
+
+        boolean isPcm = formatInfo.formatTag() == WAV_FORMAT_PCM;
+        boolean isFloat = formatInfo.formatTag() == WAV_FORMAT_IEEE_FLOAT;
+        if (!isPcm && !isFloat) {
+            skipFully(inputStream, chunkSize);
+            return null;
+        }
+
+        int bytesPerSample = Math.max(1, formatInfo.bytesPerSample());
+        int frameSize = formatInfo.blockAlign() > 0
+                ? formatInfo.blockAlign()
+                : formatInfo.channels() * bytesPerSample;
+        if (frameSize <= 0) {
+            skipFully(inputStream, chunkSize);
+            return null;
+        }
+
+        long frameCountLong = chunkSize / frameSize;
+        long dataBytesToDecode = frameCountLong * frameSize;
+        if (frameCountLong <= 0L || frameCountLong > Integer.MAX_VALUE) {
+            skipFully(inputStream, chunkSize);
+            return null;
+        }
+
+        long totalSamplesLong = frameCountLong * (long) formatInfo.channels();
+        if (totalSamplesLong <= 0L || totalSamplesLong > Integer.MAX_VALUE) {
+            skipFully(inputStream, chunkSize);
+            return null;
+        }
+
+        int frameCount = (int) frameCountLong;
+        short[] samples = new short[(int) totalSamplesLong];
+        int sampleIndex = 0;
+        byte[] decodeBuffer = new byte[Math.max(frameSize, STREAM_DECODE_CHUNK_BYTES - (STREAM_DECODE_CHUNK_BYTES % frameSize))];
+        long remainingBytes = dataBytesToDecode;
+
+        while (remainingBytes > 0L) {
+            int bytesToRead = (int) Math.min(decodeBuffer.length, remainingBytes);
+            bytesToRead -= bytesToRead % frameSize;
+            if (bytesToRead <= 0) {
+                bytesToRead = frameSize;
+            }
+            int read = readFully(inputStream, decodeBuffer, 0, bytesToRead);
+            if (read <= 0) {
+                return null;
+            }
+            int alignedRead = read - (read % frameSize);
+            if (alignedRead <= 0) {
+                return null;
+            }
+
+            int framesInChunk = alignedRead / frameSize;
+            for (int frame = 0; frame < framesInChunk; frame++) {
+                int frameOffset = frame * frameSize;
+                for (int channel = 0; channel < formatInfo.channels(); channel++) {
+                    int sampleOffset = frameOffset + (channel * bytesPerSample);
+                    short sample = decodeSampleToPcm16(
+                            decodeBuffer,
+                            sampleOffset,
+                            bytesPerSample,
+                            formatInfo.bitsPerSample(),
+                            formatInfo.formatTag()
+                    );
+                    samples[sampleIndex++] = sample;
+                }
+            }
+
+            remainingBytes -= alignedRead;
+            if (read < bytesToRead) {
+                return null;
+            }
+        }
+
+        long trailingBytes = chunkSize - dataBytesToDecode;
+        if (trailingBytes > 0L) {
+            skipFully(inputStream, trailingBytes);
+        }
+
+        int sampleRate = Math.max(8_000, formatInfo.sampleRate());
+        int stemCount = Math.max(1, Math.min(MAX_STEMS, formatInfo.channels() / 2));
+        return new ModernWavTrack(sourceId, sampleRate, formatInfo.channels(), stemCount, frameCount, samples);
+    }
+
+    private static short decodeSampleToPcm16(
+            byte[] buffer,
+            int offset,
+            int bytesPerSample,
+            int bitsPerSample,
+            int formatTag
+    ) {
+        if (offset < 0 || offset + bytesPerSample > buffer.length) {
+            return 0;
+        }
+
+        if (formatTag == WAV_FORMAT_IEEE_FLOAT) {
+            if (bytesPerSample >= 8) {
+                long bits = int64LE(buffer, offset);
+                double value = Double.longBitsToDouble(bits);
+                return normalizedToPcm16(value);
+            }
+            if (bytesPerSample >= 4) {
+                int bits = int32LE(buffer, offset);
+                float value = Float.intBitsToFloat(bits);
+                return normalizedToPcm16(value);
+            }
+            return 0;
+        }
+
+        int storedBits = Math.max(1, Math.min(32, bitsPerSample > 0 ? bitsPerSample : bytesPerSample * 8));
+        int maxBitsFromBytes = Math.min(32, bytesPerSample * 8);
+        if (maxBitsFromBytes <= 0) {
+            return 0;
+        }
+        storedBits = Math.min(storedBits, maxBitsFromBytes);
+
+        if (storedBits <= 8) {
+            int unsigned = buffer[offset] & 0xFF;
+            int centered = unsigned - 128;
+            return (short) (centered << 8);
+        }
+
+        int value = 0;
+        int bytesToRead = Math.min(bytesPerSample, 4);
+        for (int index = 0; index < bytesToRead; index++) {
+            value |= (buffer[offset + index] & 0xFF) << (index * 8);
+        }
+
+        int shiftForSign = 32 - storedBits;
+        int signed = shiftForSign >= 0 ? (value << shiftForSign) >> shiftForSign : value;
+        int pcm16;
+        if (storedBits > 16) {
+            pcm16 = signed >> (storedBits - 16);
+        } else if (storedBits < 16) {
+            pcm16 = signed << (16 - storedBits);
+        } else {
+            pcm16 = signed;
+        }
+        if (pcm16 > Short.MAX_VALUE) {
+            return Short.MAX_VALUE;
+        }
+        if (pcm16 < Short.MIN_VALUE) {
+            return Short.MIN_VALUE;
+        }
+        return (short) pcm16;
+    }
+
+    private static short normalizedToPcm16(double value) {
+        double clamped = Math.max(-1.0D, Math.min(1.0D, value));
+        return (short) Math.round(clamped * Short.MAX_VALUE);
+    }
+
+    private static int readFully(InputStream inputStream, byte[] target, int offset, int length) throws IOException {
+        int totalRead = 0;
+        while (totalRead < length) {
+            int read = inputStream.read(target, offset + totalRead, length - totalRead);
+            if (read < 0) {
+                break;
+            }
+            totalRead += read;
+        }
+        return totalRead;
+    }
+
+    private static void skipFully(InputStream inputStream, long bytes) throws IOException {
+        long remaining = Math.max(0L, bytes);
+        while (remaining > 0L) {
+            long skipped = inputStream.skip(remaining);
+            if (skipped <= 0L) {
+                if (inputStream.read() < 0) {
+                    break;
+                }
+                remaining--;
+                continue;
+            }
+            remaining -= skipped;
+        }
+    }
+
+    private static int uint16LE(byte[] source, int offset) {
+        if (offset < 0 || offset + 2 > source.length) {
+            return 0;
+        }
+        return (source[offset] & 0xFF) | ((source[offset + 1] & 0xFF) << 8);
+    }
+
+    private static long uint32LE(byte[] source, int offset) {
+        if (offset < 0 || offset + 4 > source.length) {
+            return 0L;
+        }
+        return ((long) source[offset] & 0xFFL)
+                | (((long) source[offset + 1] & 0xFFL) << 8)
+                | (((long) source[offset + 2] & 0xFFL) << 16)
+                | (((long) source[offset + 3] & 0xFFL) << 24);
+    }
+
+    private static int int32LE(byte[] source, int offset) {
+        return (int) uint32LE(source, offset);
+    }
+
+    private static long int64LE(byte[] source, int offset) {
+        if (offset < 0 || offset + 8 > source.length) {
+            return 0L;
+        }
+        return ((long) source[offset] & 0xFFL)
+                | (((long) source[offset + 1] & 0xFFL) << 8)
+                | (((long) source[offset + 2] & 0xFFL) << 16)
+                | (((long) source[offset + 3] & 0xFFL) << 24)
+                | (((long) source[offset + 4] & 0xFFL) << 32)
+                | (((long) source[offset + 5] & 0xFFL) << 40)
+                | (((long) source[offset + 6] & 0xFFL) << 48)
+                | (((long) source[offset + 7] & 0xFFL) << 56);
+    }
+
+    private static String ascii(byte[] source, int offset, int length) {
+        if (offset < 0 || length < 0 || offset + length > source.length) {
+            return "";
+        }
+        return new String(source, offset, length, StandardCharsets.US_ASCII);
+    }
+
+    private static boolean equalsAscii(byte[] source, int offset, String expected) {
+        if (expected == null || offset < 0 || offset + expected.length() > source.length) {
+            return false;
+        }
+        for (int index = 0; index < expected.length(); index++) {
+            if ((char) source[offset + index] != expected.charAt(index)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static List<ResourceLocation> resolveWavCandidates(String rawTrackId) {
@@ -632,6 +960,15 @@ public final class AssistantModernMusicPlayer {
         return sample;
     }
 
+    private static void applyGain(float[] buffer, int sampleCount, double gain) {
+        if (Math.abs(gain - 1.0D) < 0.000001D) {
+            return;
+        }
+        for (int sample = 0; sample < sampleCount; sample++) {
+            buffer[sample] = (float) (buffer[sample] * gain);
+        }
+    }
+
     private static double clamp01(double value) {
         if (value < 0.0D) {
             return 0.0D;
@@ -684,13 +1021,23 @@ public final class AssistantModernMusicPlayer {
     ) {
     }
 
+    private record WavFormatInfo(
+            int formatTag,
+            int channels,
+            int sampleRate,
+            int bitsPerSample,
+            int bytesPerSample,
+            int blockAlign
+    ) {
+    }
+
     private record ModernWavTrack(
             ResourceLocation resourceId,
             int sampleRate,
             int channels,
             int stemCount,
             int frameCount,
-            float[] samples
+            short[] samples
     ) {
         void copyStemStereo(long frameIndex, int stemTrack, float[] target, int targetOffset) {
             int clampedStem = Math.max(0, Math.min(stemCount - 1, stemTrack));
@@ -699,33 +1046,8 @@ public final class AssistantModernMusicPlayer {
             int base = frame * channels;
             int leftChannel = pairChannel;
             int rightChannel = Math.min(pairChannel + 1, channels - 1);
-            target[targetOffset] = samples[base + leftChannel];
-            target[targetOffset + 1] = samples[base + rightChannel];
-        }
-    }
-
-    private static final class DspGainPipeline {
-        private final GainProcessor stemGain = new GainProcessor(1.0D);
-        private final GainProcessor masterGain = new GainProcessor(1.0D);
-        private final AudioEvent stemEvent;
-        private final AudioEvent masterEvent;
-
-        private DspGainPipeline(int sampleRate) {
-            TarsosDSPAudioFormat format = new TarsosDSPAudioFormat(sampleRate, 16, 2, true, false);
-            this.stemEvent = new AudioEvent(format);
-            this.masterEvent = new AudioEvent(format);
-        }
-
-        private void applyGain(float[] buffer, double gain) {
-            stemGain.setGain(gain);
-            stemEvent.setFloatBuffer(buffer);
-            stemGain.process(stemEvent);
-        }
-
-        private void applyMasterGain(float[] buffer) {
-            masterGain.setGain(1.0D);
-            masterEvent.setFloatBuffer(buffer);
-            masterGain.process(masterEvent);
+            target[targetOffset] = samples[base + leftChannel] / 32768.0f;
+            target[targetOffset + 1] = samples[base + rightChannel] / 32768.0f;
         }
     }
 
