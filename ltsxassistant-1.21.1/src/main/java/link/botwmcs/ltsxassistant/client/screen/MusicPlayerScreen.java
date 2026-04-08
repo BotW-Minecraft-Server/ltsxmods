@@ -3,6 +3,7 @@ package link.botwmcs.ltsxassistant.client.screen;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
+import javax.annotation.Nullable;
 import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.fizzy.client.elements.VanillaLikeAbstractButton;
 import link.botwmcs.fizzy.client.util.FizzyGuiUtils;
@@ -279,6 +280,19 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
         return Config.musicEngineMode() == Config.ClientMusicEngineMode.CLASSIC;
     }
 
+    @Nullable
+    private static MusicTrackDescriptor resolveTrackDescriptor(@Nullable MusicAlbumApi albumApi, NowPlayingSnapshot snapshot) {
+        if (albumApi == null || snapshot.albumId().isBlank() || snapshot.trackId().isBlank()) {
+            return null;
+        }
+        for (MusicTrackDescriptor descriptor : albumApi.tracks(snapshot.albumId())) {
+            if (descriptor.trackId().equalsIgnoreCase(snapshot.trackId())) {
+                return descriptor;
+            }
+        }
+        return null;
+    }
+
     private static int currentWidth() {
         return Minecraft.getInstance().getWindow().getGuiScaledWidth();
     }
@@ -521,6 +535,8 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
         public void render(GuiGraphics guiGraphics, int x, int y, int width, int height, float partialTick) {
             MusicPlaybackApi playbackApi = CoreServices.getOptional(MusicPlaybackApi.class).orElse(null);
             NowPlayingSnapshot snapshot = playbackApi == null ? NowPlayingSnapshot.stopped() : playbackApi.nowPlaying();
+            MusicAlbumApi albumApi = CoreServices.getOptional(MusicAlbumApi.class).orElse(null);
+            MusicTrackDescriptor descriptor = resolveTrackDescriptor(albumApi, snapshot);
             ResourceLocation cover = CoreServices.getOptional(MusicCoverApi.class).map(MusicCoverApi::currentCoverTexture).orElse(null);
 
             int coverX = x;
@@ -530,9 +546,13 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
                 guiGraphics.blit(cover, coverX, coverY, 0.0F, 0.0F, COVER_SIZE, COVER_SIZE, COVER_SIZE, COVER_SIZE);
             }
             int infoX = coverX + COVER_SIZE + 8;
+            String trackLabel = descriptor != null && !descriptor.displayName().isBlank()
+                    ? descriptor.displayName()
+                    : (snapshot.trackId().isBlank() ? "-" : snapshot.trackId());
+            String authorLabel = descriptor != null && !descriptor.author().isBlank() ? descriptor.author() : "-";
             guiGraphics.drawString(
                     Minecraft.getInstance().font,
-                    "Track: " + (snapshot.trackId().isBlank() ? "-" : snapshot.trackId()),
+                    "Track: " + trimToWidth(trackLabel, Math.max(20, width - COVER_SIZE - 22)),
                     infoX,
                     coverY + 4,
                     TEXT_MAIN_COLOR,
@@ -540,7 +560,7 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
             );
             guiGraphics.drawString(
                     Minecraft.getInstance().font,
-                    "Album: " + (snapshot.albumId().isBlank() ? "-" : snapshot.albumId()),
+                    "Author: " + trimToWidth(authorLabel, Math.max(20, width - COVER_SIZE - 28)),
                     infoX,
                     coverY + 16,
                     TEXT_SUB_COLOR,
@@ -548,7 +568,7 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
             );
             guiGraphics.drawString(
                     Minecraft.getInstance().font,
-                    "Mode: " + snapshot.mode().serializedName() + "  Stem: " + snapshot.stemTrack(),
+                    "Album: " + (snapshot.albumId().isBlank() ? "-" : snapshot.albumId()),
                     infoX,
                     coverY + 30,
                     TEXT_SUB_COLOR,
@@ -556,7 +576,7 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
             );
             guiGraphics.drawString(
                     Minecraft.getInstance().font,
-                    "Time: " + formatTime(snapshot.timelineMillis()),
+                    "Mode: " + snapshot.mode().serializedName() + "  Stem: " + snapshot.stemTrack() + "  Time: " + formatTime(snapshot.timelineMillis()),
                     infoX,
                     coverY + 42,
                     TEXT_MAIN_COLOR,

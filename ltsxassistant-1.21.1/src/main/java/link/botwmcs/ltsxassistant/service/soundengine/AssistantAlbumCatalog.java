@@ -1,9 +1,14 @@
 package link.botwmcs.ltsxassistant.service.soundengine;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.mojang.blaze3d.platform.NativeImage;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -40,6 +45,8 @@ import net.minecraft.server.packs.resources.ResourceManager;
 public final class AssistantAlbumCatalog {
     private static final String ALBUM_NAMESPACE = LTSXAssistant.MODID;
     private static final String MUSIC_ROOT = "sounds/music";
+    private static final ResourceLocation SOUNDS_JSON =
+            ResourceLocation.fromNamespaceAndPath(ALBUM_NAMESPACE, "sounds.json");
     private static final ResourceLocation FALLBACK_COVER_TEXTURE =
             ResourceLocation.withDefaultNamespace("textures/item/music_disc_11.png");
     private static final AtomicBoolean GLOBAL_DIRTY = new AtomicBoolean(true);
@@ -181,6 +188,7 @@ public final class AssistantAlbumCatalog {
         String baseAlbumId = readPackId(pack);
         String displayName = readPackDisplayName(pack, baseAlbumId);
         List<TrackEntry> tracks = new ArrayList<>();
+        Map<String, SoundJsonTrackMeta> soundJsonTrackMetaByTrackId = readSoundJsonTrackMeta(pack);
 
         pack.listResources(PackType.CLIENT_RESOURCES, ALBUM_NAMESPACE, MUSIC_ROOT, (resourceId, inputSupplier) -> {
             String path = resourceId.getPath().toLowerCase(Locale.ROOT);
@@ -192,7 +200,9 @@ public final class AssistantAlbumCatalog {
                 try (InputStream input = inputSupplier.get()) {
                     bytes = input.readAllBytes();
                 }
-                tracks.add(buildTrackEntry(baseAlbumId, resourceId, bytes));
+                String trackId = canonicalTrackId(resourceId);
+                SoundJsonTrackMeta soundJsonMeta = soundJsonTrackMetaByTrackId.get(trackId);
+                tracks.add(buildTrackEntry(baseAlbumId, resourceId, bytes, soundJsonMeta));
             } catch (Exception ignored) {
                 // Skip broken entries.
             }
@@ -218,7 +228,6 @@ public final class AssistantAlbumCatalog {
             }
         }
         numbered.sort((left, right) -> Integer.compare(left.trackNumber, right.trackNumber));
-        Collections.shuffle(unnumbered, new Random(31L * albumId.hashCode() + tracks.size()));
 
         Map<Integer, TrackEntry> byTrackNo = new LinkedHashMap<>();
         for (TrackEntry track : numbered) {
@@ -228,6 +237,7 @@ public final class AssistantAlbumCatalog {
                 unnumbered.add(track);
             }
         }
+        Collections.shuffle(unnumbered, random);
 
         int maxTrackNo = 0;
         for (Integer key : byTrackNo.keySet()) {
@@ -265,6 +275,7 @@ public final class AssistantAlbumCatalog {
                     albumId,
                     track.trackId,
                     track.displayName,
+                    track.author,
                     track.trackNumber,
                     track.stemPairs,
                     track.format
@@ -279,41 +290,53 @@ public final class AssistantAlbumCatalog {
         return new AlbumEntry(albumDescriptor, descriptors, orderedTrackIds, trackById, trackIndexById);
     }
 
-    private TrackEntry buildTrackEntry(String albumId, ResourceLocation resourceId, byte[] bytes) {
+    private TrackEntry buildTrackEntry(
+            String albumId,
+            ResourceLocation resourceId,
+            byte[] bytes,
+            @Nullable SoundJsonTrackMeta soundJsonMeta
+    ) {
         String path = resourceId.getPath();
         String fileName = path.substring(path.lastIndexOf('/') + 1);
         String bareName = stripFileExtension(fileName);
         String ext = fileName.toLowerCase(Locale.ROOT).endsWith(".wav") ? "wav" : "ogg";
+        String trackId = canonicalTrackId(resourceId);
 
         int trackNumber = -1;
         String displayName = bareName;
+        String author = "";
         int stemPairs = 1;
 
+        WavTagInfo tag = null;
         if ("wav".equals(ext)) {
-            WavTagInfo tag = readWavTagInfo(bytes);
+            tag = readWavTagInfo(bytes);
             if (tag.trackNumber > 0) {
                 trackNumber = tag.trackNumber;
             }
             if (tag.title != null && !tag.title.isBlank()) {
                 displayName = tag.title;
             }
+            if (tag.artist != null && !tag.artist.isBlank()) {
+                author = tag.artist;
+            }
             if (tag.channels >= 2) {
                 stemPairs = Math.max(1, Math.min(16, tag.channels / 2));
             }
-        } else {
-            int inferred = inferTrackNumberFromName(bareName);
-            if (inferred > 0) {
-                trackNumber = inferred;
+        }
+
+        if (soundJsonMeta != null) {
+            if (soundJsonMeta.trackNumber > 0) {
+                trackNumber = soundJsonMeta.trackNumber;
+            }
+            if (soundJsonMeta.displayName != null && !soundJsonMeta.displayName.isBlank()) {
+                displayName = soundJsonMeta.displayName;
+            }
+            if (soundJsonMeta.author != null && !soundJsonMeta.author.isBlank()) {
+                author = soundJsonMeta.author;
             }
         }
 
-        String normalizedPath = path.replace('\\', '/');
-        if (normalizedPath.startsWith("sounds/")) {
-            normalizedPath = normalizedPath.substring("sounds/".length());
-        }
-        normalizedPath = stripFileExtension(normalizedPath);
-        String trackId = ResourceLocation.fromNamespaceAndPath(resourceId.getNamespace(), normalizedPath).toString();
-        return new TrackEntry(albumId, trackId, displayName, trackNumber, stemPairs, ext);
+        return new TrackEntry(albumId, trackId, displayName, author, trackNumber, stemPairs, ext);
     }
 
     private ResourceLocation loadPackCoverTexture(String albumId, PackResources pack) {
@@ -440,26 +463,6 @@ public final class AssistantAlbumCatalog {
         return fileName.substring(0, dot);
     }
 
-    private static int inferTrackNumberFromName(String baseName) {
-        String digits = "";
-        for (int i = baseName.length() - 1; i >= 0; i--) {
-            char c = baseName.charAt(i);
-            if (Character.isDigit(c)) {
-                digits = c + digits;
-            } else {
-                break;
-            }
-        }
-        if (digits.isEmpty()) {
-            return -1;
-        }
-        try {
-            return Integer.parseInt(digits);
-        } catch (NumberFormatException ignored) {
-            return -1;
-        }
-    }
-
     private static String sanitizeId(String raw) {
         if (raw == null || raw.isBlank()) {
             return "album";
@@ -532,12 +535,141 @@ public final class AssistantAlbumCatalog {
             if (!value.isBlank()) {
                 if ("INAM".equals(itemId) && (info.title == null || info.title.isBlank())) {
                     info.title = value;
+                } else if ("IART".equals(itemId) && (info.artist == null || info.artist.isBlank())) {
+                    info.artist = value;
                 } else if (("ITRK".equals(itemId) || "TRCK".equals(itemId)) && info.trackNumber < 0) {
                     info.trackNumber = parseTrackNumber(value);
                 }
             }
             cursor = dataStart + size + (size % 2);
         }
+    }
+
+    private Map<String, SoundJsonTrackMeta> readSoundJsonTrackMeta(PackResources pack) {
+        IoSupplier<InputStream> supplier = pack.getResource(PackType.CLIENT_RESOURCES, SOUNDS_JSON);
+        if (supplier == null) {
+            return Map.of();
+        }
+        Map<String, SoundJsonTrackMeta> metadataByTrackId = new LinkedHashMap<>();
+        try (InputStream input = supplier.get();
+             InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            JsonElement rootElement = JsonParser.parseReader(reader);
+            if (!rootElement.isJsonObject()) {
+                return Map.of();
+            }
+            JsonObject root = rootElement.getAsJsonObject();
+            for (Map.Entry<String, JsonElement> eventEntry : root.entrySet()) {
+                if (!eventEntry.getValue().isJsonObject()) {
+                    continue;
+                }
+                JsonObject eventObject = eventEntry.getValue().getAsJsonObject();
+                JsonElement soundsElement = eventObject.get("sounds");
+                if (soundsElement == null || !soundsElement.isJsonArray()) {
+                    continue;
+                }
+                JsonArray sounds = soundsElement.getAsJsonArray();
+                for (JsonElement soundElement : sounds) {
+                    if (!soundElement.isJsonObject()) {
+                        continue;
+                    }
+                    JsonObject soundObject = soundElement.getAsJsonObject();
+                    SoundJsonTrackMeta incomingMeta = SoundJsonTrackMeta.from(soundObject);
+                    if (incomingMeta.isEmpty()) {
+                        continue;
+                    }
+                    String trackId = resolveTrackIdFromSoundJson(eventEntry.getKey(), soundObject);
+                    if (trackId.isBlank()) {
+                        continue;
+                    }
+                    metadataByTrackId.merge(trackId, incomingMeta, SoundJsonTrackMeta::mergePreferFirst);
+                }
+            }
+        } catch (Exception ignored) {
+            return Map.of();
+        }
+        return metadataByTrackId;
+    }
+
+    private static String resolveTrackIdFromSoundJson(String eventKey, JsonObject soundObject) {
+        String type = jsonString(soundObject, "type");
+        if ("event".equalsIgnoreCase(type)) {
+            return "";
+        }
+        String fromName = canonicalTrackId(jsonString(soundObject, "name"), ALBUM_NAMESPACE);
+        if (!fromName.isBlank()) {
+            return fromName;
+        }
+        return canonicalTrackId(eventKey, ALBUM_NAMESPACE);
+    }
+
+    private static String canonicalTrackId(ResourceLocation resourceId) {
+        String normalizedPath = normalizeSoundPath(resourceId.getPath());
+        return ResourceLocation.fromNamespaceAndPath(resourceId.getNamespace(), normalizedPath).toString();
+    }
+
+    private static String canonicalTrackId(String raw, String fallbackNamespace) {
+        if (raw == null || raw.isBlank()) {
+            return "";
+        }
+        String normalizedRaw = raw.trim().replace('\\', '/');
+        ResourceLocation location;
+        if (normalizedRaw.indexOf(':') >= 0) {
+            location = ResourceLocation.tryParse(normalizedRaw);
+        } else {
+            location = ResourceLocation.tryBuild(fallbackNamespace, normalizedRaw);
+        }
+        if (location == null) {
+            return "";
+        }
+        String normalizedPath = normalizeSoundPath(location.getPath());
+        if (normalizedPath.isBlank()) {
+            return "";
+        }
+        return ResourceLocation.fromNamespaceAndPath(location.getNamespace(), normalizedPath).toString();
+    }
+
+    private static String normalizeSoundPath(String rawPath) {
+        String normalizedPath = rawPath == null ? "" : rawPath.replace('\\', '/');
+        while (normalizedPath.startsWith("/")) {
+            normalizedPath = normalizedPath.substring(1);
+        }
+        if (normalizedPath.startsWith("sounds/")) {
+            normalizedPath = normalizedPath.substring("sounds/".length());
+        }
+        normalizedPath = stripFileExtension(normalizedPath);
+        return normalizedPath;
+    }
+
+    private static String jsonString(JsonObject object, String key) {
+        JsonElement element = object.get(key);
+        if (element == null || element.isJsonNull()) {
+            return "";
+        }
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+            return "";
+        }
+        return element.getAsString().trim();
+    }
+
+    private static int jsonTrackNumber(JsonObject object, String key) {
+        JsonElement element = object.get(key);
+        if (element == null || element.isJsonNull()) {
+            return -1;
+        }
+        if (element.isJsonPrimitive()) {
+            if (element.getAsJsonPrimitive().isNumber()) {
+                try {
+                    int numeric = element.getAsInt();
+                    return numeric > 0 ? numeric : -1;
+                } catch (Exception ignored) {
+                    return -1;
+                }
+            }
+            if (element.getAsJsonPrimitive().isString()) {
+                return parseTrackNumber(element.getAsString());
+            }
+        }
+        return -1;
     }
 
     private static int parseTrackNumber(String raw) {
@@ -593,14 +725,24 @@ public final class AssistantAlbumCatalog {
         private final String albumId;
         private final String trackId;
         private final String displayName;
+        private final String author;
         private final int trackNumber;
         private final int stemPairs;
         private final String format;
 
-        private TrackEntry(String albumId, String trackId, String displayName, int trackNumber, int stemPairs, String format) {
+        private TrackEntry(
+                String albumId,
+                String trackId,
+                String displayName,
+                String author,
+                int trackNumber,
+                int stemPairs,
+                String format
+        ) {
             this.albumId = albumId;
             this.trackId = trackId;
             this.displayName = displayName;
+            this.author = author == null ? "" : author;
             this.trackNumber = trackNumber;
             this.stemPairs = stemPairs;
             this.format = format;
@@ -634,5 +776,39 @@ public final class AssistantAlbumCatalog {
         private int channels = 2;
         @Nullable
         private String title;
+        @Nullable
+        private String artist;
+    }
+
+    private static final class SoundJsonTrackMeta {
+        @Nullable
+        private final String displayName;
+        @Nullable
+        private final String author;
+        private final int trackNumber;
+
+        private SoundJsonTrackMeta(@Nullable String displayName, @Nullable String author, int trackNumber) {
+            this.displayName = (displayName == null || displayName.isBlank()) ? null : displayName.trim();
+            this.author = (author == null || author.isBlank()) ? null : author.trim();
+            this.trackNumber = trackNumber > 0 ? trackNumber : -1;
+        }
+
+        private boolean isEmpty() {
+            return displayName == null && author == null && trackNumber < 0;
+        }
+
+        private static SoundJsonTrackMeta from(JsonObject soundObject) {
+            String displayName = jsonString(soundObject, "display_name");
+            String author = jsonString(soundObject, "author");
+            int trackNumber = jsonTrackNumber(soundObject, "track");
+            return new SoundJsonTrackMeta(displayName, author, trackNumber);
+        }
+
+        private static SoundJsonTrackMeta mergePreferFirst(SoundJsonTrackMeta first, SoundJsonTrackMeta second) {
+            String mergedDisplayName = first.displayName != null ? first.displayName : second.displayName;
+            String mergedAuthor = first.author != null ? first.author : second.author;
+            int mergedTrackNumber = first.trackNumber > 0 ? first.trackNumber : second.trackNumber;
+            return new SoundJsonTrackMeta(mergedDisplayName, mergedAuthor, mergedTrackNumber);
+        }
     }
 }

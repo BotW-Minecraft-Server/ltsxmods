@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.fizzy.client.util.FizzyGuiUtils;
 import link.botwmcs.fizzy.ui.element.ElementPainter;
@@ -12,6 +13,7 @@ import link.botwmcs.ltsxassistant.Config;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicAlbumApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicPlaybackApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicTrackDescriptor;
 import link.botwmcs.ltsxassistant.api.soundengine.NowPlayingSnapshot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -64,6 +66,8 @@ public final class MusicMiniPlayerElement implements ElementPainter {
 
         MusicPlaybackApi playbackApi = CoreServices.getOptional(MusicPlaybackApi.class).orElse(null);
         NowPlayingSnapshot snapshot = playbackApi == null ? NowPlayingSnapshot.stopped() : playbackApi.nowPlaying();
+        MusicAlbumApi albumApi = CoreServices.getOptional(MusicAlbumApi.class).orElse(null);
+        MusicTrackDescriptor descriptor = resolveTrackDescriptor(albumApi, snapshot);
 
         int coverSize = Math.max(16, height - COVER_PADDING * 2);
         int coverX = x + COVER_PADDING;
@@ -78,15 +82,19 @@ public final class MusicMiniPlayerElement implements ElementPainter {
             }
         }
 
-        String trackText = snapshot.trackId().isBlank() ? "No track" : snapshot.trackId();
-        String modeText = "Mode: " + snapshot.mode().serializedName() + "  Album: " + (snapshot.albumId().isBlank() ? "-" : snapshot.albumId());
-        String timeText = formatTime(snapshot.timelineMillis());
+        String trackText = descriptor != null && !descriptor.displayName().isBlank()
+                ? descriptor.displayName()
+                : (snapshot.trackId().isBlank() ? "No track" : snapshot.trackId());
+        String authorText = descriptor != null && !descriptor.author().isBlank() ? "By: " + descriptor.author() : "By: -";
+        String statusText = "Mode: " + snapshot.mode().serializedName()
+                + "  Album: " + (snapshot.albumId().isBlank() ? "-" : snapshot.albumId())
+                + "  " + formatTime(snapshot.timelineMillis());
         int contentX = coverX + coverSize + 8;
         int contentWidth = Math.max(1, x2 - contentX - 4);
         String trimmedTrack = trimToWidth(trackText, contentWidth);
         guiGraphics.drawString(Minecraft.getInstance().font, trimmedTrack, contentX, y + 5, 0xFFE6E7EB, false);
-        guiGraphics.drawString(Minecraft.getInstance().font, modeText, contentX, y + height - 24, 0xFFB9BBC6, false);
-        guiGraphics.drawString(Minecraft.getInstance().font, timeText, contentX, y + height - 13, 0xFFE6E7EB, false);
+        guiGraphics.drawString(Minecraft.getInstance().font, trimToWidth(authorText, contentWidth), contentX, y + height - 24, 0xFFB9BBC6, false);
+        guiGraphics.drawString(Minecraft.getInstance().font, trimToWidth(statusText, contentWidth), contentX, y + height - 13, 0xFFE6E7EB, false);
 
         playPauseButton.setMessage(Component.literal(snapshot.playing() ? "||" : ">"));
         boolean hasTrack = !snapshot.trackId().isBlank();
@@ -196,6 +204,19 @@ public final class MusicMiniPlayerElement implements ElementPainter {
         long minutes = totalSeconds / 60L;
         long seconds = totalSeconds % 60L;
         return String.format("%d:%02d", minutes, seconds);
+    }
+
+    @Nullable
+    private static MusicTrackDescriptor resolveTrackDescriptor(@Nullable MusicAlbumApi albumApi, NowPlayingSnapshot snapshot) {
+        if (albumApi == null || snapshot.albumId().isBlank() || snapshot.trackId().isBlank()) {
+            return null;
+        }
+        for (MusicTrackDescriptor descriptor : albumApi.tracks(snapshot.albumId())) {
+            if (descriptor.trackId().equalsIgnoreCase(snapshot.trackId())) {
+                return descriptor;
+            }
+        }
+        return null;
     }
 
     private static String trimToWidth(String text, int maxWidth) {

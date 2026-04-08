@@ -73,6 +73,7 @@ public final class AssistantModernMusicPlayer {
     private boolean paused = true;
     private boolean running;
     private boolean activelyWriting;
+    private boolean eventSoundManagerPaused;
 
     public void play(String trackId, int stemTrack) {
         String normalizedTrackId = normalizeTrackId(trackId);
@@ -137,9 +138,9 @@ public final class AssistantModernMusicPlayer {
         synchronized (stateLock) {
             if (backend == PlaybackBackend.EVENT && running && !paused) {
                 timelineMillisOffset += Math.max(0L, Util.getMillis() - activeStartMillis);
-                if (activeEventInstance != null) {
-                    Minecraft.getInstance().getSoundManager().stop(activeEventInstance);
-                    activeEventInstance = null;
+                if (activeEventInstance != null && !eventSoundManagerPaused) {
+                    Minecraft.getInstance().getSoundManager().pause();
+                    eventSoundManagerPaused = true;
                 }
             }
             paused = true;
@@ -156,9 +157,17 @@ public final class AssistantModernMusicPlayer {
                 return;
             }
             if (backend == PlaybackBackend.EVENT && activeEventSoundId != null) {
-                SoundInstance instance = createMusicEventInstance(activeEventSoundId);
-                Minecraft.getInstance().getSoundManager().play(instance);
-                activeEventInstance = instance;
+                SoundManager soundManager = Minecraft.getInstance().getSoundManager();
+                if (eventSoundManagerPaused) {
+                    soundManager.resume();
+                    eventSoundManagerPaused = false;
+                }
+                boolean active = activeEventInstance != null && soundManager.isActive(activeEventInstance);
+                if (!active) {
+                    SoundInstance instance = createMusicEventInstance(activeEventSoundId);
+                    soundManager.play(instance);
+                    activeEventInstance = instance;
+                }
                 activeStartMillis = Util.getMillis();
             }
             paused = false;
@@ -172,6 +181,7 @@ public final class AssistantModernMusicPlayer {
     public void stop() {
         Thread threadToJoin;
         @Nullable SoundInstance eventToStop;
+        boolean resumeSoundManager;
         synchronized (stateLock) {
             paused = true;
             running = false;
@@ -181,6 +191,8 @@ public final class AssistantModernMusicPlayer {
             eventToStop = activeEventInstance;
             activeEventInstance = null;
             activeEventSoundId = null;
+            resumeSoundManager = eventSoundManagerPaused;
+            eventSoundManagerPaused = false;
             currentTrackId = "";
             timelineFrame = 0L;
             timelineMillisOffset = 0L;
@@ -195,6 +207,9 @@ public final class AssistantModernMusicPlayer {
         }
         if (eventToStop != null) {
             Minecraft.getInstance().getSoundManager().stop(eventToStop);
+        }
+        if (resumeSoundManager) {
+            Minecraft.getInstance().getSoundManager().resume();
         }
         if (threadToJoin != null) {
             threadToJoin.interrupt();

@@ -7,6 +7,7 @@ public record MusicTrackDescriptor(
         String albumId,
         String trackId,
         String displayName,
+        String author,
         int trackNumber,
         int stemPairs,
         String format
