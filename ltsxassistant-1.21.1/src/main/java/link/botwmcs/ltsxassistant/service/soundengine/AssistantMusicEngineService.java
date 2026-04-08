@@ -1,14 +1,20 @@
 package link.botwmcs.ltsxassistant.service.soundengine;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
 import link.botwmcs.ltsxassistant.Config;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicAlbumApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicAlbumDescriptor;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicEngineMode;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicPlaybackApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicSceneApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicTrackDescriptor;
 import link.botwmcs.ltsxassistant.api.soundengine.NowPlayingSnapshot;
 import link.botwmcs.ltsxassistant.net.soundengine.MusicControlAction;
 import link.botwmcs.ltsxassistant.net.soundengine.MusicControlPayload;
@@ -35,10 +41,10 @@ import net.minecraft.world.level.biome.Biome;
 import net.neoforged.neoforge.client.gui.ModListScreen;
 
 /**
- * M2 implementation: hard-takeover music controller with classic playback routing.
+ * Hard-takeover music controller with classic + modern album driver support.
  */
-public final class AssistantMusicEngineService implements MusicPlaybackApi, MusicSceneApi, MusicCoverApi {
-    private static final String SCENE_UNKNOWN = "screen.unknown";
+public final class AssistantMusicEngineService
+        implements MusicPlaybackApi, MusicSceneApi, MusicCoverApi, MusicAlbumApi {
     private static final String ID_UNKNOWN = "minecraft:unknown";
     private static final int STARTING_DELAY = 100;
     private static final String CLASSIC_ALBUM_ID = "minecraft_classic";
@@ -54,6 +60,7 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
     private final AtomicReference<NowPlayingSnapshot> nowPlaying = new AtomicReference<>(NowPlayingSnapshot.stopped());
     private final RandomSource random = RandomSource.create();
     private final AssistantModernMusicPlayer modernPlayer = new AssistantModernMusicPlayer();
+    private final AssistantAlbumCatalog albumCatalog = new AssistantAlbumCatalog();
 
     @Nullable
     private SoundInstance activeClassicInstance;
@@ -67,13 +74,17 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
     private boolean manualPaused;
     private int nextSongDelay = STARTING_DELAY;
     private long activeTrackStartMillis;
+    private String modernObservedTrackId = "";
+    private int modernInactiveTicks;
+    private boolean modernWasActive;
 
     @Override
     public void play(MusicEngineMode mode, String albumId, String trackId, int stemTrack) {
         requestedMode = mode;
         requestedAlbumId = safe(albumId);
-        requestedTrackId = safe(trackId);
+        requestedTrackId = mode == MusicEngineMode.MODERN ? canonicalModernTrackId(trackId) : safe(trackId);
         manualPaused = false;
+
         if (mode == MusicEngineMode.CLASSIC) {
             stopModernPlayback();
             manualClassicMusic = parseClassicMusicFromTrackId(trackId);
@@ -81,19 +92,31 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
                 manualClassicMusic = parseClassicMusicFromTrackId(albumId);
             }
             nextSongDelay = 0;
-        } else {
-            stopClassicPlayback();
-            manualClassicMusic = null;
-            modernPlayer.play(resolveModernTrackId(albumId, trackId), stemTrack);
+            nowPlaying.set(new NowPlayingSnapshot(MusicEngineMode.CLASSIC, CLASSIC_ALBUM_ID, safe(trackId), -1, true, 0L));
+            return;
         }
+
+        stopClassicPlayback();
+        manualClassicMusic = null;
+        ensureModernSelectionResolved();
+        if (!requestedAlbumId.isBlank()) {
+            Config.setSelectedAlbumId(requestedAlbumId);
+        }
+
+        String targetTrackId = resolveModernTrackId(requestedAlbumId, requestedTrackId);
+        if (!targetTrackId.isBlank()) {
+            modernPlayer.play(targetTrackId, Math.max(0, stemTrack));
+            requestedTrackId = targetTrackId;
+        }
+        resetModernTrackObservation(requestedTrackId);
         AssistantModernMusicPlayer.ModernPlaybackSnapshot modernSnapshot = modernPlayer.snapshot();
         nowPlaying.set(new NowPlayingSnapshot(
-                mode,
-                safe(albumId),
-                safe(trackId),
-                mode == MusicEngineMode.MODERN ? modernSnapshot.stemTrack() : stemTrack,
-                mode == MusicEngineMode.MODERN ? modernSnapshot.playing() : true,
-                mode == MusicEngineMode.MODERN ? modernSnapshot.timelineMillis() : 0L
+                MusicEngineMode.MODERN,
+                requestedAlbumId,
+                requestedTrackId,
+                modernSnapshot.stemTrack(),
+                modernSnapshot.playing(),
+                modernSnapshot.timelineMillis()
         ));
     }
 
@@ -138,6 +161,7 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
         manualClassicMusic = null;
         stopClassicPlayback();
         stopModernPlayback();
+        resetModernTrackObservation("");
         requestedMode = Config.preferredMusicEngineMode();
         requestedAlbumId = "";
         requestedTrackId = "";
@@ -148,7 +172,8 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
     public void setTrack(MusicEngineMode mode, String albumId, String trackId) {
         requestedMode = mode;
         requestedAlbumId = safe(albumId);
-        requestedTrackId = safe(trackId);
+        requestedTrackId = mode == MusicEngineMode.MODERN ? canonicalModernTrackId(trackId) : safe(trackId);
+
         if (mode == MusicEngineMode.CLASSIC) {
             stopModernPlayback();
             manualClassicMusic = parseClassicMusicFromTrackId(trackId);
@@ -156,22 +181,35 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
                 manualClassicMusic = parseClassicMusicFromTrackId(albumId);
             }
             nextSongDelay = 0;
-        } else {
-            stopClassicPlayback();
-            manualClassicMusic = null;
-            modernPlayer.play(resolveModernTrackId(albumId, trackId), nowPlaying.get().stemTrack());
+            return;
+        }
+
+        stopClassicPlayback();
+        manualClassicMusic = null;
+        ensureModernSelectionResolved();
+        if (!requestedAlbumId.isBlank()) {
+            Config.setSelectedAlbumId(requestedAlbumId);
+        }
+
+        String targetTrackId = resolveModernTrackId(requestedAlbumId, requestedTrackId);
+        if (!targetTrackId.isBlank()) {
+            requestedTrackId = targetTrackId;
+            int currentStem = Math.max(0, nowPlaying.get().stemTrack());
+            modernPlayer.play(targetTrackId, currentStem);
+            resetModernTrackObservation(requestedTrackId);
             if (manualPaused) {
                 modernPlayer.pause();
             }
         }
+
         AssistantModernMusicPlayer.ModernPlaybackSnapshot modernSnapshot = modernPlayer.snapshot();
         nowPlaying.updateAndGet(current -> new NowPlayingSnapshot(
                 mode,
-                safe(albumId),
-                safe(trackId),
-                mode == MusicEngineMode.MODERN ? modernSnapshot.stemTrack() : current.stemTrack(),
-                mode == MusicEngineMode.MODERN ? modernSnapshot.playing() : current.playing(),
-                mode == MusicEngineMode.MODERN ? modernSnapshot.timelineMillis() : current.timelineMillis()
+                requestedAlbumId,
+                requestedTrackId,
+                modernSnapshot.stemTrack(),
+                !manualPaused && modernSnapshot.playing(),
+                modernSnapshot.timelineMillis()
         ));
     }
 
@@ -262,8 +300,99 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
     @Override
     public ResourceLocation currentCoverTexture() {
         NowPlayingSnapshot snapshot = nowPlaying.get();
+        if (snapshot.mode() == MusicEngineMode.MODERN && !snapshot.albumId().isBlank()) {
+            ResourceLocation albumCover = albumCatalog.coverTexture(snapshot.albumId());
+            if (albumCover != null) {
+                return albumCover;
+            }
+        }
         ResourceLocation candidate = resolveCoverFromTrack(snapshot.trackId(), snapshot.albumId());
         return existsTexture(candidate) ? candidate : FALLBACK_COVER_TEXTURE;
+    }
+
+    @Override
+    public List<MusicAlbumDescriptor> albums() {
+        return albumCatalog.albums();
+    }
+
+    @Override
+    public List<MusicTrackDescriptor> tracks(String albumId) {
+        return albumCatalog.tracks(safe(albumId));
+    }
+
+    @Override
+    public String selectedAlbumId() {
+        ensureModernSelectionResolved();
+        return requestedAlbumId;
+    }
+
+    @Override
+    public void selectAlbum(String albumId) {
+        String normalized = safe(albumId);
+        if (normalized.isBlank()) {
+            return;
+        }
+        if (!albumCatalog.hasAlbum(normalized)) {
+            return;
+        }
+        requestedAlbumId = normalized;
+        Config.setSelectedAlbumId(normalized);
+        requestedTrackId = albumCatalog.firstTrack(normalized)
+                .map(MusicTrackDescriptor::trackId)
+                .map(AssistantMusicEngineService::canonicalModernTrackId)
+                .orElse("");
+        if (requestedMode == MusicEngineMode.MODERN && !requestedTrackId.isBlank()) {
+            modernPlayer.play(requestedTrackId, Math.max(0, nowPlaying.get().stemTrack()));
+            resetModernTrackObservation(requestedTrackId);
+            if (manualPaused) {
+                modernPlayer.pause();
+            }
+        }
+    }
+
+    @Override
+    public void playTrack(String albumId, String trackId) {
+        String normalizedAlbum = safe(albumId);
+        String normalizedTrack = safe(trackId);
+        Optional<MusicTrackDescriptor> resolved = albumCatalog.resolveTrack(normalizedAlbum, normalizedTrack);
+        if (resolved.isEmpty()) {
+            return;
+        }
+        MusicTrackDescriptor track = resolved.get();
+        requestedMode = MusicEngineMode.MODERN;
+        requestedAlbumId = track.albumId();
+        requestedTrackId = canonicalModernTrackId(track.trackId());
+        Config.setSelectedAlbumId(requestedAlbumId);
+        manualPaused = false;
+        stopClassicPlayback();
+        modernPlayer.play(requestedTrackId, Math.max(0, nowPlaying.get().stemTrack()));
+        resetModernTrackObservation(requestedTrackId);
+    }
+
+    @Override
+    public void nextTrack() {
+        ensureModernSelectionResolved();
+        if (requestedAlbumId.isBlank()) {
+            return;
+        }
+        String currentTrack = requestedTrackId.isBlank() ? nowPlaying.get().trackId() : requestedTrackId;
+        Optional<MusicTrackDescriptor> next = albumCatalog.cycleTrack(requestedAlbumId, currentTrack, 1);
+        next.ifPresent(track -> playTrack(track.albumId(), track.trackId()));
+    }
+
+    @Override
+    public void previousTrack() {
+        ensureModernSelectionResolved();
+        if (requestedAlbumId.isBlank()) {
+            return;
+        }
+        String currentTrack = requestedTrackId.isBlank() ? nowPlaying.get().trackId() : requestedTrackId;
+        Optional<MusicTrackDescriptor> prev = albumCatalog.cycleTrack(requestedAlbumId, currentTrack, -1);
+        prev.ifPresent(track -> playTrack(track.albumId(), track.trackId()));
+    }
+
+    public void markAlbumCatalogDirty() {
+        albumCatalog.markDirty();
     }
 
     public void applyControlPayload(MusicControlPayload payload) {
@@ -291,24 +420,70 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
         if (requestedAlbumId.isBlank() && requestedTrackId.isBlank()) {
             requestedMode = Config.preferredMusicEngineMode();
         }
+
         if (requestedMode == MusicEngineMode.MODERN) {
-            stopClassicPlayback();
-            if (manualPaused) {
-                modernPlayer.pause();
-            } else {
-                modernPlayer.resume();
-            }
-            AssistantModernMusicPlayer.ModernPlaybackSnapshot modernSnapshot = modernPlayer.snapshot();
-            nowPlaying.updateAndGet(current -> new NowPlayingSnapshot(
-                    MusicEngineMode.MODERN,
-                    current.albumId().isBlank() ? requestedAlbumId : current.albumId(),
-                    current.trackId().isBlank() ? requestedTrackId : current.trackId(),
-                    modernSnapshot.stemTrack(),
-                    !manualPaused && modernSnapshot.playing(),
-                    modernSnapshot.timelineMillis()
-            ));
+            tickModernEngine();
             return;
         }
+
+        tickClassicEngine();
+    }
+
+    public Optional<Music> resolveScreenBackgroundMusic(Screen screen) {
+        return Optional.empty();
+    }
+
+    private void tickModernEngine() {
+        stopClassicPlayback();
+        ensureModernSelectionResolved();
+
+        AssistantModernMusicPlayer.ModernPlaybackSnapshot modernSnapshot = modernPlayer.snapshot();
+        String targetTrack = canonicalModernTrackId(resolveModernTrackId(requestedAlbumId, requestedTrackId));
+        String currentTrack = canonicalModernTrackId(modernSnapshot.trackId());
+        if (!targetTrack.isBlank() && !targetTrack.equalsIgnoreCase(currentTrack)) {
+            modernPlayer.play(targetTrack, Math.max(0, modernSnapshot.stemTrack()));
+            requestedTrackId = targetTrack;
+            resetModernTrackObservation(requestedTrackId);
+            modernSnapshot = modernPlayer.snapshot();
+        }
+
+        boolean screenPause = Minecraft.getInstance().screen instanceof PauseScreen;
+        boolean effectivePaused = manualPaused || (screenPause && Config.pauseScreenPausesMusic());
+
+        int stemForScene = resolveSceneStemTrack();
+        if (stemForScene >= 0 && modernSnapshot.supportsStemSwitching() && stemForScene != modernSnapshot.stemTrack()) {
+            modernPlayer.setStemTrack(stemForScene);
+        }
+
+        if (effectivePaused) {
+            modernPlayer.pause();
+        } else {
+            modernPlayer.resume();
+        }
+
+        modernSnapshot = modernPlayer.snapshot();
+        updateModernTrackObservation(modernSnapshot, effectivePaused);
+        if (!effectivePaused
+                && modernWasActive
+                && modernInactiveTicks >= 40
+                && !modernSnapshot.trackId().isBlank()
+                && !modernSnapshot.supportsStemSwitching()) {
+            nextTrack();
+            resetModernTrackObservation(requestedTrackId);
+            modernSnapshot = modernPlayer.snapshot();
+        }
+
+        nowPlaying.set(new NowPlayingSnapshot(
+                MusicEngineMode.MODERN,
+                requestedAlbumId,
+                requestedTrackId,
+                modernSnapshot.stemTrack(),
+                !effectivePaused && modernSnapshot.playing(),
+                modernSnapshot.timelineMillis()
+        ));
+    }
+
+    private void tickClassicEngine() {
         if (manualPaused) {
             updatePlaybackSnapshot(false, 0L);
             return;
@@ -353,8 +528,56 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
         }
     }
 
-    public Optional<Music> resolveScreenBackgroundMusic(Screen screen) {
-        return Optional.empty();
+    private void ensureModernSelectionResolved() {
+        albumCatalog.ensureReady();
+
+        if (requestedAlbumId.isBlank() || !albumCatalog.hasAlbum(requestedAlbumId)) {
+            String configured = safe(Config.selectedAlbumId());
+            if (!configured.isBlank() && albumCatalog.hasAlbum(configured)) {
+                requestedAlbumId = configured;
+            } else {
+                List<MusicAlbumDescriptor> available = albumCatalog.albums();
+                requestedAlbumId = available.isEmpty() ? "" : available.get(0).albumId();
+            }
+            if (!requestedAlbumId.isBlank()) {
+                Config.setSelectedAlbumId(requestedAlbumId);
+            }
+        }
+
+        if (!requestedAlbumId.isBlank()) {
+            Optional<MusicTrackDescriptor> resolved = albumCatalog.resolveTrack(requestedAlbumId, requestedTrackId);
+            if (resolved.isPresent()) {
+                requestedTrackId = canonicalModernTrackId(resolved.get().trackId());
+            } else {
+                requestedTrackId = albumCatalog.firstTrack(requestedAlbumId)
+                        .map(MusicTrackDescriptor::trackId)
+                        .map(AssistantMusicEngineService::canonicalModernTrackId)
+                        .orElse("");
+            }
+        } else {
+            requestedTrackId = "";
+        }
+    }
+
+    private int resolveSceneStemTrack() {
+        Minecraft minecraft = Minecraft.getInstance();
+        Screen screen = minecraft.screen;
+        if (screen instanceof OptionsScreen || (screen != null && screen.getClass().getName().startsWith("net.minecraft.client.gui.screens.options."))) {
+            return 0; // 01/02
+        }
+        if (screen instanceof PauseScreen) {
+            return 1; // 03/04
+        }
+        if (screen instanceof TitleScreen) {
+            return 3; // 07/08
+        }
+        if (screen != null) {
+            return 2; // 05/06
+        }
+        if (minecraft.level != null) {
+            return minecraft.level.isDay() ? 3 : 1; // day 07/08, night 03/04
+        }
+        return 3;
     }
 
     private void startClassic(Music music) {
@@ -454,13 +677,64 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
 
     private static String resolveModernTrackId(String albumId, String trackId) {
         if (trackId != null && !trackId.isBlank()) {
-            return trackId;
+            return canonicalModernTrackId(trackId);
         }
-        return safe(albumId);
+        return canonicalModernTrackId(albumId);
     }
 
     private static String safe(String raw) {
         return raw == null ? "" : raw;
+    }
+
+    private void resetModernTrackObservation(String trackId) {
+        modernObservedTrackId = canonicalModernTrackId(trackId);
+        modernInactiveTicks = 0;
+        modernWasActive = false;
+    }
+
+    private void updateModernTrackObservation(AssistantModernMusicPlayer.ModernPlaybackSnapshot snapshot, boolean effectivePaused) {
+        String currentTrack = canonicalModernTrackId(snapshot.trackId());
+        if (!currentTrack.equalsIgnoreCase(modernObservedTrackId)) {
+            modernObservedTrackId = currentTrack;
+            modernInactiveTicks = 0;
+            modernWasActive = false;
+        }
+        if (snapshot.playing()) {
+            modernWasActive = true;
+            modernInactiveTicks = 0;
+            return;
+        }
+        if (effectivePaused || !modernWasActive || currentTrack.isBlank()) {
+            modernInactiveTicks = 0;
+            return;
+        }
+        modernInactiveTicks++;
+    }
+
+    private static String canonicalModernTrackId(String rawTrackId) {
+        if (rawTrackId == null || rawTrackId.isBlank()) {
+            return "";
+        }
+        ResourceLocation base = ResourceLocation.tryParse(rawTrackId.trim().replace('\\', '/'));
+        if (base == null) {
+            return rawTrackId.trim().replace('\\', '/');
+        }
+        String path = base.getPath().replace('\\', '/');
+        while (path.startsWith("/")) {
+            path = path.substring(1);
+        }
+        if (path.startsWith("sounds/")) {
+            path = path.substring("sounds/".length());
+        }
+        if (path.endsWith(".ogg")) {
+            path = path.substring(0, path.length() - 4);
+        } else if (path.endsWith(".wav")) {
+            path = path.substring(0, path.length() - 4);
+        }
+        if (path.isBlank()) {
+            return "";
+        }
+        return ResourceLocation.fromNamespaceAndPath(base.getNamespace(), path).toString();
     }
 
     private static ResourceLocation resolveCoverFromTrack(String trackId, String albumId) {
@@ -496,9 +770,9 @@ public final class AssistantMusicEngineService implements MusicPlaybackApi, Musi
         if (minecraft == null) {
             return false;
         }
-        try (java.io.InputStream ignored = minecraft.getResourceManager().open(texture)) {
+        try (InputStream ignored = minecraft.getResourceManager().open(texture)) {
             return true;
-        } catch (java.io.IOException ignored) {
+        } catch (IOException ignored) {
             return false;
         }
     }

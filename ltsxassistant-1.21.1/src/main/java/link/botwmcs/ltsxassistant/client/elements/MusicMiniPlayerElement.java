@@ -9,6 +9,7 @@ import link.botwmcs.fizzy.client.util.FizzyGuiUtils;
 import link.botwmcs.fizzy.ui.element.ElementPainter;
 import link.botwmcs.fizzy.ui.element.ElementType;
 import link.botwmcs.ltsxassistant.Config;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicAlbumApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicPlaybackApi;
 import link.botwmcs.ltsxassistant.api.soundengine.NowPlayingSnapshot;
@@ -78,7 +79,7 @@ public final class MusicMiniPlayerElement implements ElementPainter {
         }
 
         String trackText = snapshot.trackId().isBlank() ? "No track" : snapshot.trackId();
-        String modeText = "Mode: " + snapshot.mode().serializedName();
+        String modeText = "Mode: " + snapshot.mode().serializedName() + "  Album: " + (snapshot.albumId().isBlank() ? "-" : snapshot.albumId());
         String timeText = formatTime(snapshot.timelineMillis());
         int contentX = coverX + coverSize + 8;
         int contentWidth = Math.max(1, x2 - contentX - 4);
@@ -133,6 +134,15 @@ public final class MusicMiniPlayerElement implements ElementPainter {
 
     private static void cycleTrack(int delta) {
         if (Config.musicEngineMode() == Config.ClientMusicEngineMode.CLASSIC) {
+            return;
+        }
+        MusicAlbumApi albumApi = CoreServices.getOptional(MusicAlbumApi.class).orElse(null);
+        if (albumApi != null) {
+            if (delta > 0) {
+                albumApi.nextTrack();
+            } else {
+                albumApi.previousTrack();
+            }
             return;
         }
         CoreServices.getOptional(MusicPlaybackApi.class).ifPresent(api -> {

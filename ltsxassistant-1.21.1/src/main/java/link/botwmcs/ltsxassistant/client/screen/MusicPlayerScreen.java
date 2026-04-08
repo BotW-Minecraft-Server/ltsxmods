@@ -1,9 +1,11 @@
 package link.botwmcs.ltsxassistant.client.screen;
 
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.List;
 import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.fizzy.client.elements.VanillaLikeAbstractButton;
+import link.botwmcs.fizzy.client.util.FizzyGuiUtils;
 import link.botwmcs.fizzy.client.util.TextRenderer;
 import link.botwmcs.fizzy.ui.background.BgPainter;
 import link.botwmcs.fizzy.ui.behind.VanillaBehind;
@@ -18,13 +20,17 @@ import link.botwmcs.fizzy.ui.frame.FrameMetrics;
 import link.botwmcs.fizzy.ui.frame.FramePainter;
 import link.botwmcs.fizzy.ui.host.FizzyScreenHost;
 import link.botwmcs.ltsxassistant.Config;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicAlbumApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicAlbumDescriptor;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicPlaybackApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicTrackDescriptor;
 import link.botwmcs.ltsxassistant.api.soundengine.NowPlayingSnapshot;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
+import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.SoundOptionsScreen;
 import net.minecraft.network.chat.Component;
@@ -39,6 +45,7 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
     private static final int BUTTON_HEIGHT = 20;
     private static final int HALF_BUTTON_WIDTH = 96;
     private static final int COVER_SIZE = 48;
+    private static final int TRACK_LIST_HEIGHT = 120;
     private static final int COVER_BG_COLOR = 0xFF30343F;
     private static final int TEXT_MAIN_COLOR = 0xFFE5E7EB;
     private static final int TEXT_SUB_COLOR = 0xFFBFC2CE;
@@ -83,7 +90,7 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
                 .overrideSizePx(width, height);
 
         int centerX = width / 2;
-        int topY = height / 2 - 70;
+        int topY = Math.max(34, height / 2 - 120);
         int panelX = centerX - PANEL_WIDTH / 2;
 
         builder.padByPx(panelX, 20, PANEL_WIDTH, 14)
@@ -111,11 +118,20 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
         builder.padByPx(panelX + HALF_BUTTON_WIDTH + 8, topY + 48, HALF_BUTTON_WIDTH, BUTTON_HEIGHT)
                 .element(buildStemNextButton())
                 .done();
-        builder.padByPx(panelX, topY + 126, PANEL_WIDTH, BUTTON_HEIGHT)
+
+        int listY = topY + 72;
+        int doneY = listY + TRACK_LIST_HEIGHT + 4;
+        int infoY = doneY + 24;
+
+        builder.padByPx(panelX, listY, PANEL_WIDTH, TRACK_LIST_HEIGHT)
+                .element(new AlbumTrackListElement())
+                .done();
+
+        builder.padByPx(panelX, doneY, PANEL_WIDTH, BUTTON_HEIGHT)
                 .element(buildDoneButton(parent))
                 .done();
 
-        builder.padByPx(panelX, height / 2 + 6, PANEL_WIDTH, COVER_SIZE)
+        builder.padByPx(panelX, infoY, PANEL_WIDTH, COVER_SIZE)
                 .element(new NowPlayingInfoElement())
                 .done();
         return builder.build();
@@ -278,6 +294,228 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
         return String.format("%d:%02d", minutes, seconds);
     }
 
+    private static String trimToWidth(String text, int maxWidth) {
+        if (text == null || text.isEmpty()) {
+            return "";
+        }
+        Minecraft minecraft = Minecraft.getInstance();
+        if (minecraft.font.width(text) <= maxWidth) {
+            return text;
+        }
+        String ellipsis = "...";
+        int ellipsisWidth = minecraft.font.width(ellipsis);
+        String current = text;
+        while (!current.isEmpty() && minecraft.font.width(current) + ellipsisWidth > maxWidth) {
+            current = current.substring(0, current.length() - 1);
+        }
+        return current + ellipsis;
+    }
+
+    private static final class AlbumTrackListElement implements ElementPainter {
+        private static final int BACKGROUND_COLOR = 0xB0171820;
+        private static final int ROW_COLOR = 0x6630343F;
+        private static final int ROW_COUNT = 6;
+        private static final int ROW_HEIGHT = 14;
+
+        private final List<AbstractWidget> widgets = new ArrayList<>();
+        private final List<Button> trackButtons = new ArrayList<>();
+        private final String[] visibleTrackIds = new String[ROW_COUNT];
+
+        private Button albumPrevButton;
+        private Button albumNextButton;
+        private Button pagePrevButton;
+        private Button pageNextButton;
+        private int pageIndex;
+
+        @Override
+        public void init(InitContext context, int x, int y, int width, int height) {
+            widgets.clear();
+            trackButtons.clear();
+            albumPrevButton = context.addRenderableWidget(Button.builder(Component.literal("<A"), button -> switchAlbum(-1)).bounds(0, 0, 24, 16).build());
+            albumNextButton = context.addRenderableWidget(Button.builder(Component.literal("A>"), button -> switchAlbum(1)).bounds(0, 0, 24, 16).build());
+            pagePrevButton = context.addRenderableWidget(Button.builder(Component.literal("<"), button -> changePage(-1)).bounds(0, 0, 18, 16).build());
+            pageNextButton = context.addRenderableWidget(Button.builder(Component.literal(">"), button -> changePage(1)).bounds(0, 0, 18, 16).build());
+
+            widgets.add(albumPrevButton);
+            widgets.add(albumNextButton);
+            widgets.add(pagePrevButton);
+            widgets.add(pageNextButton);
+
+            for (int index = 0; index < ROW_COUNT; index++) {
+                final int rowIndex = index;
+                Button rowButton = context.addRenderableWidget(Button.builder(Component.literal(""), button -> playRow(rowIndex)).bounds(0, 0, 100, ROW_HEIGHT).build());
+                trackButtons.add(rowButton);
+                widgets.add(rowButton);
+            }
+            syncLayout(x, y, width, height);
+        }
+
+        @Override
+        public void render(GuiGraphics guiGraphics, int x, int y, int width, int height, float partialTick) {
+            syncLayout(x, y, width, height);
+            guiGraphics.fill(x, y, x + width, y + height, BACKGROUND_COLOR);
+
+            MusicAlbumApi albumApi = CoreServices.getOptional(MusicAlbumApi.class).orElse(null);
+            if (albumApi == null) {
+                guiGraphics.drawString(Minecraft.getInstance().font, "Album API unavailable", x + 4, y + 4, TEXT_SUB_COLOR, false);
+                setAllRowsInactive();
+                return;
+            }
+
+            List<MusicAlbumDescriptor> albums = albumApi.albums();
+            if (albums.isEmpty()) {
+                guiGraphics.drawString(Minecraft.getInstance().font, "No album packs found", x + 4, y + 4, TEXT_SUB_COLOR, false);
+                setAllRowsInactive();
+                return;
+            }
+
+            String activeAlbumId = albumApi.selectedAlbumId();
+            MusicAlbumDescriptor activeAlbum = albums.get(0);
+            for (MusicAlbumDescriptor descriptor : albums) {
+                if (descriptor.albumId().equals(activeAlbumId)) {
+                    activeAlbum = descriptor;
+                    break;
+                }
+            }
+
+            List<MusicTrackDescriptor> tracks = albumApi.tracks(activeAlbum.albumId());
+            int totalPages = Math.max(1, (tracks.size() + ROW_COUNT - 1) / ROW_COUNT);
+            pageIndex = Math.max(0, Math.min(pageIndex, totalPages - 1));
+
+            String albumLabel = trimToWidth(activeAlbum.displayName(), Math.max(20, width - 72));
+            guiGraphics.drawString(Minecraft.getInstance().font, albumLabel, x + 30, y + 5, TEXT_MAIN_COLOR, false);
+            guiGraphics.drawString(Minecraft.getInstance().font, "p" + (pageIndex + 1) + "/" + totalPages, x + width - 34, y + 5, TEXT_SUB_COLOR, false);
+
+            int offset = pageIndex * ROW_COUNT;
+            String currentTrackId = CoreServices.getOptional(MusicPlaybackApi.class).map(api -> api.nowPlaying().trackId()).orElse("");
+            for (int row = 0; row < ROW_COUNT; row++) {
+                int trackIndex = offset + row;
+                Button rowButton = trackButtons.get(row);
+                if (trackIndex < tracks.size()) {
+                    MusicTrackDescriptor track = tracks.get(trackIndex);
+                    visibleTrackIds[row] = track.trackId();
+                    String prefix = track.trackNumber() > 0 ? String.format("%02d ", track.trackNumber()) : "-- ";
+                    String title = trimToWidth(prefix + track.displayName(), Math.max(20, width - 14));
+                    if (track.trackId().equals(currentTrackId)) {
+                        title = "> " + trimToWidth(prefix + track.displayName(), Math.max(20, width - 18));
+                    }
+                    rowButton.setMessage(Component.literal(title));
+                    rowButton.visible = true;
+                    rowButton.active = !isClassicReadOnly();
+                    guiGraphics.fill(x + 2, y + 22 + row * (ROW_HEIGHT + 2), x + width - 2, y + 22 + row * (ROW_HEIGHT + 2) + ROW_HEIGHT, ROW_COLOR);
+                } else {
+                    visibleTrackIds[row] = "";
+                    rowButton.visible = false;
+                    rowButton.active = false;
+                }
+            }
+
+            boolean interactive = !isClassicReadOnly();
+            albumPrevButton.active = interactive && albums.size() > 1;
+            albumNextButton.active = interactive && albums.size() > 1;
+            pagePrevButton.active = interactive && pageIndex > 0;
+            pageNextButton.active = interactive && pageIndex + 1 < totalPages;
+        }
+
+        @Override
+        public ElementType type() {
+            return ElementType.CUSTOM;
+        }
+
+        @Override
+        public List<AbstractWidget> widgets() {
+            return widgets;
+        }
+
+        private void syncLayout(int x, int y, int width, int height) {
+            if (albumPrevButton == null || albumNextButton == null || pagePrevButton == null || pageNextButton == null) {
+                return;
+            }
+            FizzyGuiUtils.syncWidgetBounds(albumPrevButton, x + 2, y + 2, 24, 16);
+            FizzyGuiUtils.syncWidgetBounds(albumNextButton, x + width - 64, y + 2, 24, 16);
+            FizzyGuiUtils.syncWidgetBounds(pagePrevButton, x + width - 38, y + 2, 18, 16);
+            FizzyGuiUtils.syncWidgetBounds(pageNextButton, x + width - 20, y + 2, 18, 16);
+
+            int rowY = y + 22;
+            for (int row = 0; row < trackButtons.size(); row++) {
+                Button button = trackButtons.get(row);
+                FizzyGuiUtils.syncWidgetBounds(button, x + 2, rowY + row * (ROW_HEIGHT + 2), Math.max(10, width - 4), ROW_HEIGHT);
+            }
+        }
+
+        private void switchAlbum(int delta) {
+            if (isClassicReadOnly()) {
+                return;
+            }
+            MusicAlbumApi albumApi = CoreServices.getOptional(MusicAlbumApi.class).orElse(null);
+            if (albumApi == null) {
+                return;
+            }
+            List<MusicAlbumDescriptor> albums = albumApi.albums();
+            if (albums.isEmpty()) {
+                return;
+            }
+            String selected = albumApi.selectedAlbumId();
+            int index = 0;
+            for (int i = 0; i < albums.size(); i++) {
+                if (albums.get(i).albumId().equals(selected)) {
+                    index = i;
+                    break;
+                }
+            }
+            int next = Math.floorMod(index + delta, albums.size());
+            albumApi.selectAlbum(albums.get(next).albumId());
+            pageIndex = 0;
+        }
+
+        private void changePage(int delta) {
+            pageIndex = Math.max(0, pageIndex + delta);
+        }
+
+        private void playRow(int rowIndex) {
+            if (isClassicReadOnly()) {
+                return;
+            }
+            if (rowIndex < 0 || rowIndex >= visibleTrackIds.length) {
+                return;
+            }
+            String trackId = visibleTrackIds[rowIndex];
+            if (trackId == null || trackId.isBlank()) {
+                return;
+            }
+            MusicAlbumApi albumApi = CoreServices.getOptional(MusicAlbumApi.class).orElse(null);
+            if (albumApi == null) {
+                return;
+            }
+            String selectedAlbum = albumApi.selectedAlbumId();
+            if (selectedAlbum.isBlank()) {
+                return;
+            }
+            albumApi.playTrack(selectedAlbum, trackId);
+        }
+
+        private void setAllRowsInactive() {
+            for (int row = 0; row < trackButtons.size(); row++) {
+                Button rowButton = trackButtons.get(row);
+                rowButton.visible = false;
+                rowButton.active = false;
+                visibleTrackIds[row] = "";
+            }
+            if (albumPrevButton != null) {
+                albumPrevButton.active = false;
+            }
+            if (albumNextButton != null) {
+                albumNextButton.active = false;
+            }
+            if (pagePrevButton != null) {
+                pagePrevButton.active = false;
+            }
+            if (pageNextButton != null) {
+                pageNextButton.active = false;
+            }
+        }
+    }
+
     private static final class NowPlayingInfoElement implements ElementPainter {
         @Override
         public void render(GuiGraphics guiGraphics, int x, int y, int width, int height, float partialTick) {
@@ -302,15 +540,15 @@ public final class MusicPlayerScreen extends FizzyScreenHost {
             );
             guiGraphics.drawString(
                     Minecraft.getInstance().font,
-                    "Mode: " + snapshot.mode().serializedName(),
+                    "Album: " + (snapshot.albumId().isBlank() ? "-" : snapshot.albumId()),
                     infoX,
-                    coverY + 18,
+                    coverY + 16,
                     TEXT_SUB_COLOR,
                     false
             );
             guiGraphics.drawString(
                     Minecraft.getInstance().font,
-                    "Stem: " + snapshot.stemTrack(),
+                    "Mode: " + snapshot.mode().serializedName() + "  Stem: " + snapshot.stemTrack(),
                     infoX,
                     coverY + 30,
                     TEXT_SUB_COLOR,

@@ -10,12 +10,14 @@ public final class Config {
     public static final String CLIENT_CATEGORY_SOUND_ENGINE = "soundengine";
     public static final String CLIENT_KEY_PAUSE_SCREEN_PAUSES_MUSIC = "pauseScreenPausesMusic";
     public static final String CLIENT_KEY_MUSIC_ENGINE_MODE = "musicEngineMode";
+    public static final String CLIENT_KEY_SELECTED_ALBUM_ID = "selectedAlbumId";
 
     public static final ModConfigSpec COMMON_SPEC;
     public static final ModConfigSpec CLIENT_SPEC;
     public static final ModConfigSpec SPEC;
     private static final ModConfigSpec.BooleanValue PAUSE_SCREEN_PAUSES_MUSIC;
     private static final ModConfigSpec.ConfigValue<String> MUSIC_ENGINE_MODE;
+    private static final ModConfigSpec.ConfigValue<String> SELECTED_ALBUM_ID;
 
     static {
         ModConfigSpec.Builder commonBuilder = new ModConfigSpec.Builder();
@@ -35,6 +37,9 @@ public final class Config {
                         ClientMusicEngineMode.CLASSIC.serializedName(),
                         ClientMusicEngineMode.serializedValues()
                 );
+        SELECTED_ALBUM_ID = clientBuilder
+                .comment("Last selected album id for modern music resource-pack playback.")
+                .define(CLIENT_KEY_SELECTED_ALBUM_ID, "");
         clientBuilder.pop();
         CLIENT_SPEC = clientBuilder.build();
 
@@ -71,6 +76,22 @@ public final class Config {
         }
         try {
             MUSIC_ENGINE_MODE.set(mode.serializedName());
+        } catch (IllegalStateException ignored) {
+            // Config may not be loaded yet during early bootstrap.
+        }
+    }
+
+    public static String selectedAlbumId() {
+        try {
+            return SELECTED_ALBUM_ID.get();
+        } catch (IllegalStateException ignored) {
+            return "";
+        }
+    }
+
+    public static void setSelectedAlbumId(String albumId) {
+        try {
+            SELECTED_ALBUM_ID.set(albumId == null ? "" : albumId);
         } catch (IllegalStateException ignored) {
             // Config may not be loaded yet during early bootstrap.
         }

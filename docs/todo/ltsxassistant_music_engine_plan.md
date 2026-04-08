@@ -117,21 +117,35 @@
 
 ## M5 Plan (Album + Resource Pack + Multiplayer Validation)
 ### Scope
-- Finish album system for classic and modern.
-- Support resource pack injection.
-- Add built-in `Minecraft Classic` album and replace vanilla default entry.
-- Validate server control in multiplayer.
+- Build album resource-pack driver first (`M5-1`) and pack content later (`M5-2`).
+- Driver must scan only album-tagged packs:
+  - pack is considered album pack iff it contains files under `assets/ltsxassistant/sounds/music`.
+- Support multi-pack shared album library and in-player album selection.
+- Support track-list UI with manual play selection.
+- MODERN routing rules for WAV stem tracks:
+  - Title + in-world day -> stem pair `07/08`
+  - in-world night -> stem pair `03/04`
+  - `options.*` -> stem pair `01/02`
+  - `PauseScreen` -> stem pair `03/04` (still obey `pauseScreenPausesMusic`)
+  - other GUI -> stem pair `05/06`
+  - if file has only one stereo pair, always use `01/02`.
+- Track order policy:
+  - use WAV `track no.` metadata first
+  - tracks without number are random fillers in missing slots, then random tail.
 
 ### Work Items
-- Album metadata format + loader.
-- Built-in album packing + default policy.
-- Multiplayer control loop:
-  - server API -> payload
-  - client apply -> state sync (if needed)
+- `M5-1`:
+  - Album API + descriptors.
+  - Album catalog scanner + resource reload dirty mark.
+  - Engine integration (album select/play/next/prev + scene stem mapping).
+  - GUI: album selector + track list.
+- `M5-2`:
+  - Built-in `Minecraft Classic` album resource pack.
+  - Multiplayer validation and additional server album controls if needed.
 
 ### Done Criteria
-- Resource packs can add albums/tracks and become active.
-- Server can control client music behavior reliably.
+- `M5-1`: album-tagged packs are discovered; UI can select album and specific tracks; stem mapping rules work.
+- `M5-2`: built-in classic album pack is available and multiplayer validation is complete.
 
 ---
 
@@ -294,3 +308,57 @@ Rule: starting from M1, every verified sub-step must be appended to this section
 - `Files: ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/client/AssistantSoundOptionsMusicPlayerProxyContributor.java`
 - `Validation: ./gradlew :ltsxassistant:compileJava --no-daemon -> BUILD SUCCESSFUL.`
 - `Notes/Next: Verify in-game top-right M button presence on SoundOptions and confirm return path still restores button after closing MusicPlayer.`
+
+- `[2026-04-07 22:31] [M5-STEP-01] [DONE]`
+- `Changes: Added album-domain API and data models for listing/selecting albums and tracks in modern engine flow.`
+- `Files: ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/api/soundengine/MusicAlbumApi.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/api/soundengine/MusicAlbumDescriptor.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/api/soundengine/MusicTrackDescriptor.java`
+- `Validation: compile passed later in M5-STEP-05.`
+- `Notes/Next: Implement resource-pack album catalog scanner and metadata ordering rules.`
+
+- `[2026-04-07 22:39] [M5-STEP-02] [DONE]`
+- `Changes: Implemented album resource-pack driver (scanner + album tag logic + WAV metadata parse for title/track no + pack cover texture loading + ordered/randomized playback list generation) and resource-reload dirty marking hook.`
+- `Files: ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/service/soundengine/AssistantAlbumCatalog.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/client/AssistantMusicClientReloadEvents.java`
+- `Validation: compile passed later in M5-STEP-05.`
+- `Notes/Next: Wire catalog into engine and expose album controls through services/API registry.`
+
+- `[2026-04-07 22:47] [M5-STEP-03] [DONE]`
+- `Changes: Integrated album catalog into AssistantMusicEngineService and Core module registration; added modern scene->stem routing for day/night/options/pause/other GUI, album selection persistence config, and album cover preference.`
+- `Files: ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/service/soundengine/AssistantMusicEngineService.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/core/AssistantCoreModule.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/Config.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/service/soundengine/AssistantModernMusicPlayer.java`
+- `Validation: compile passed later in M5-STEP-05.`
+- `Notes/Next: Update GUI to add album selector and track list manual play controls.`
+
+- `[2026-04-07 22:53] [M5-STEP-04] [DONE]`
+- `Changes: Upgraded MusicPlayer UI with album selector + paged track list (manual click-to-play), and switched mini-player previous/next behavior to album API navigation.`
+- `Files: ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/client/screen/MusicPlayerScreen.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/client/elements/MusicMiniPlayerElement.java`
+- `Validation: compile passed later in M5-STEP-05.`
+- `Notes/Next: Run full module compile and prepare manual regression checklist for in-game behavior verification.`
+
+- `[2026-04-07 22:55] [M5-STEP-05] [DONE]`
+- `Changes: Ran compile validation for M5-1 implementation package set.`
+- `Files: (build verification)`
+- `Validation: ./gradlew :ltsxassistant:compileJava --no-daemon -> BUILD SUCCESSFUL.`
+- `Notes/Next: Start manual in-game regression for album discovery, album switch, track click-play, and scene stem mapping.`
+
+- `[2026-04-07 23:08] [M5-STEP-06] [DONE]`
+- `Changes: Extracted vanilla Minecraft 1.21.1 sound assets from NeoForge runtime asset index (id=17) into codes workspace for upcoming M5-2 classic album pack creation.`
+- `Files: codes/minecraft-1.21.1-vanilla-sounds/assets/minecraft/sounds/**`
+- `Validation: copied 3727 files; sample paths verified under ambient/block/music directories.`
+- `Notes/Next: Use this extracted sounds tree as source material when assembling built-in Minecraft Classic album resource pack in M5-2.`
+
+- `[2026-04-07 23:20] [M5-STEP-07] [DONE]`
+- `Changes: Implemented built-in Minecraft Classic album resource pack under ltsxassistant resources; copied all vanilla music tracks from codes source into assets/ltsxassistant/sounds/music, generated sounds.json event mappings for all tracks, and added pack.mcmeta + pack.png.`
+- `Files: ltsxassistant-1.21.1/src/main/resources/resourcepacks/minecraft_classic_album/pack.mcmeta; ltsxassistant-1.21.1/src/main/resources/resourcepacks/minecraft_classic_album/pack.png; ltsxassistant-1.21.1/src/main/resources/resourcepacks/minecraft_classic_album/assets/ltsxassistant/sounds.json; ltsxassistant-1.21.1/src/main/resources/resourcepacks/minecraft_classic_album/assets/ltsxassistant/sounds/music/**`
+- `Validation: 60 ogg files copied; sounds.json contains 60 mapped sound events; directory structure verified.`
+- `Notes/Next: Validate in client that built-in resource pack is visible/enabled and appears as an album in Music Player with playable tracks.`
+
+- `[2026-04-07 23:22] [M5-STEP-08] [DONE]`
+- `Changes: Verified resource packaging pipeline includes Minecraft Classic built-in pack assets in module output and normalized JSON files to UTF-8 (no BOM).`
+- `Files: ltsxassistant-1.21.1/build/resources/main/resourcepacks/minecraft_classic_album/**; ltsxassistant-1.21.1/src/main/resources/resourcepacks/minecraft_classic_album/pack.mcmeta; ltsxassistant-1.21.1/src/main/resources/resourcepacks/minecraft_classic_album/assets/ltsxassistant/sounds.json`
+- `Validation: ./gradlew :ltsxassistant:processResources --no-daemon -> BUILD SUCCESSFUL; output tree contains pack.mcmeta/pack.png/sounds.json/music tracks.`
+- `Notes/Next: Run in-game regression to confirm pack discovery and album playback behavior.`
+
+- `[2026-04-07 23:34] [M5-STEP-09] [DONE]`
+- `Changes: Fixed severe modern playback loop bugs: event backend resume now no-ops when already running (prevents per-tick duplicate sound handles), modern track ids are canonicalized across catalog/engine (`namespace:music/...`), and event-track auto-next now requires active->inactive transition with grace ticks to avoid rapid unintended skipping.`
+- `Files: ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/service/soundengine/AssistantModernMusicPlayer.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/service/soundengine/AssistantAlbumCatalog.java; ltsxassistant-1.21.1/src/main/java/link/botwmcs/ltsxassistant/service/soundengine/AssistantMusicEngineService.java`
+- `Validation: ./gradlew :ltsxassistant:compileJava --no-daemon -> BUILD SUCCESSFUL.`
+- `Notes/Next: Client regression check should confirm no more `Maximum sound pool size` spam, no multi-overlap playback, and track select/stop controls behaving normally.`

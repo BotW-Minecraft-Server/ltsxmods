@@ -11,6 +11,7 @@ import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicPlaybackApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicSceneApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicServerControlApi;
+import link.botwmcs.ltsxassistant.api.soundengine.MusicAlbumApi;
 import link.botwmcs.ltsxassistant.net.soundengine.AssistantMusicNetworkBootstrap;
 import link.botwmcs.ltsxassistant.client.AssistantMusicScreenProxyContributor;
 import link.botwmcs.ltsxassistant.client.AssistantSoundOptionsMusicPlayerProxyContributor;
@@ -47,6 +48,9 @@ public final class AssistantCoreModule implements ICoreModule {
         }
         if (playbackApi instanceof MusicCoverApi coverApi) {
             CoreServices.registerIfAbsent(MusicCoverApi.class, coverApi);
+        }
+        if (playbackApi instanceof MusicAlbumApi albumApi) {
+            CoreServices.registerIfAbsent(MusicAlbumApi.class, albumApi);
         }
         CoreServices.registerIfAbsent(MusicServerControlApi.class, new AssistantMusicServerControlService());
         AssistantMusicNetworkBootstrap.bootstrap(ctx.logger());

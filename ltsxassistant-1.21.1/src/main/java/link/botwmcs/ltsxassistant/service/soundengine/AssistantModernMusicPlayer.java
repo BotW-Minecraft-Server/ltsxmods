@@ -66,6 +66,7 @@ public final class AssistantModernMusicPlayer {
     private long timelineMillisOffset;
     private long activeStartMillis;
     private int activeStem;
+    private int activeStemPairs;
     private int fadingOutStem = -1;
     private int fadeFramesRemaining;
     private int fadeFramesTotal = 1;
@@ -92,6 +93,7 @@ public final class AssistantModernMusicPlayer {
                 timelineMillisOffset = 0L;
                 activeStartMillis = Util.getMillis();
                 activeStem = clampStem(stemTrack, wavTrack.stemCount());
+                activeStemPairs = Math.max(1, wavTrack.stemCount());
                 fadingOutStem = -1;
                 fadeFramesRemaining = 0;
                 fadeFramesTotal = Math.max(1, millisToFrames(CROSSFADE_MILLIS, wavTrack.sampleRate()));
@@ -121,6 +123,7 @@ public final class AssistantModernMusicPlayer {
             timelineMillisOffset = 0L;
             activeStartMillis = Util.getMillis();
             activeStem = clampStem(stemTrack, MAX_STEMS);
+            activeStemPairs = 1;
             fadingOutStem = -1;
             fadeFramesRemaining = 0;
             fadeFramesTotal = 1;
@@ -147,6 +150,9 @@ public final class AssistantModernMusicPlayer {
     public void resume() {
         synchronized (stateLock) {
             if (backend == PlaybackBackend.NONE) {
+                return;
+            }
+            if (!paused) {
                 return;
             }
             if (backend == PlaybackBackend.EVENT && activeEventSoundId != null) {
@@ -180,6 +186,7 @@ public final class AssistantModernMusicPlayer {
             timelineMillisOffset = 0L;
             activeStartMillis = 0L;
             activeStem = 0;
+            activeStemPairs = 0;
             fadingOutStem = -1;
             fadeFramesRemaining = 0;
             fadeFramesTotal = 1;
@@ -233,7 +240,7 @@ public final class AssistantModernMusicPlayer {
                 if (!paused && running) {
                     timelineMillis += Math.max(0L, Util.getMillis() - activeStartMillis);
                 }
-                return new ModernPlaybackSnapshot(currentTrackId, activeStem, playing, timelineMillis);
+                return new ModernPlaybackSnapshot(currentTrackId, activeStem, activeStemPairs, false, playing, timelineMillis);
             }
             if (currentTrack == null) {
                 return ModernPlaybackSnapshot.stopped();
@@ -243,7 +250,8 @@ public final class AssistantModernMusicPlayer {
                     : timelineFrame % currentTrack.frameCount();
             long timelineMillis = (timelineInLoop * 1000L) / Math.max(1, currentTrack.sampleRate());
             boolean playing = running && !paused && activelyWriting;
-            return new ModernPlaybackSnapshot(currentTrackId, activeStem, playing, timelineMillis);
+            int stemPairs = Math.max(1, currentTrack.stemCount());
+            return new ModernPlaybackSnapshot(currentTrackId, activeStem, stemPairs, stemPairs > 1, playing, timelineMillis);
         }
     }
 
@@ -709,11 +717,13 @@ public final class AssistantModernMusicPlayer {
     public record ModernPlaybackSnapshot(
             String trackId,
             int stemTrack,
+            int stemPairs,
+            boolean supportsStemSwitching,
             boolean playing,
             long timelineMillis
     ) {
         public static ModernPlaybackSnapshot stopped() {
-            return new ModernPlaybackSnapshot("", -1, false, 0L);
+            return new ModernPlaybackSnapshot("", -1, 0, false, false, 0L);
         }
     }
 }
