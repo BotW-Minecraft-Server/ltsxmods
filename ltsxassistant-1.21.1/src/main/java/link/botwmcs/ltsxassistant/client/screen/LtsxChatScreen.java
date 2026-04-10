@@ -1,8 +1,12 @@
 package link.botwmcs.ltsxassistant.client.screen;
 
+import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import javax.annotation.Nullable;
 import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.fizzy.ui.background.BgPainter;
@@ -12,8 +16,20 @@ import link.botwmcs.fizzy.ui.core.HostType;
 import link.botwmcs.fizzy.ui.frame.FrameMetrics;
 import link.botwmcs.fizzy.ui.frame.FramePainter;
 import link.botwmcs.fizzy.ui.host.FizzyScreenHost;
+import link.botwmcs.ltsxassistant.LTSXAssistant;
+import link.botwmcs.ltsxassistant.api.chat.AdvancedChatUiRegistry;
 import link.botwmcs.ltsxassistant.api.chat.AdvancedChatWindowService;
+import link.botwmcs.ltsxassistant.api.chat.ChatButtonActionContext;
+import link.botwmcs.ltsxassistant.api.chat.ChatButtonDefinition;
+import link.botwmcs.ltsxassistant.api.chat.ChatButtonStyle;
+import link.botwmcs.ltsxassistant.api.chat.ChatButtonVisibilityContext;
+import link.botwmcs.ltsxassistant.api.chat.ChatPageDefinition;
+import link.botwmcs.ltsxassistant.api.chat.ChatPageElementDefinition;
 import link.botwmcs.ltsxassistant.client.elements.BadgeButtonElement;
+import link.botwmcs.ltsxassistant.client.elements.ShiftedGlobalChatElement;
+import link.botwmcs.ltsxassistant.client.elements.SwappableContentElement;
+import link.botwmcs.ltsxassistant.service.chat.AssistantAdvancedChatWindowService;
+import net.minecraft.Util;
 import net.minecraft.client.GuiMessageTag;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -23,6 +39,7 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.narration.NarratedElementType;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
@@ -31,19 +48,24 @@ import net.minecraft.util.StringUtil;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Fizzy-hosted assistant chat screen.
+ * Fizzy-hosted assistant chat screen with a tabbed content area and API-driven buttons/pages.
  */
 public final class LtsxChatScreen extends FizzyScreenHost {
     public static final double MOUSE_SCROLL_SPEED = 7.0;
     private static final Component TITLE = Component.translatable("chat_screen.title");
     private static final Component USAGE_TEXT = Component.translatable("chat_screen.usage");
     private static final int TOOLTIP_MAX_WIDTH = 210;
-    private static final int CHAT_WINDOW_OFFSET_PX = 12;
-    private static final int BUTTON_SIDE_MARGIN_PX = 4;
+
+    private static final int CHAT_CONTENT_SHIFT_UP_PX = 12;
+    private static final int CONTENT_BUTTON_GAP_PX = 4;
+    private static final int BUTTON_INPUT_GAP_PX = 2;
+    private static final int BUTTON_SIDE_MARGIN_PX = 2;
     private static final int BUTTON_GAP_PX = 4;
-    private static final int BUTTON_BOTTOM_Y_PX = 30;
     private static final int BUTTON_TEXT_PADDING_PX = 3;
-    private static final int BUTTON_HEIGHT_PX = 14;
+    private static final int BUTTON_ROW_HEIGHT_PX = 14;
+    private static final int INPUT_BACKGROUND_TOP_OFFSET_PX = 14;
+    private static final int INPUT_BACKGROUND_BOTTOM_OFFSET_PX = 2;
+    private static final int MIN_CONTENT_TOP_PX = 2;
 
     private String historyBuffer = "";
     private int historyPos = -1;
@@ -51,13 +73,24 @@ public final class LtsxChatScreen extends FizzyScreenHost {
     private String initial;
     private CommandSuggestions commandSuggestions;
 
+    private final AdvancedChatUiRegistry uiRegistry;
+    private final long registryVersion;
+    private final ScreenLayout layout;
+
     public LtsxChatScreen(String initial) {
-        this(initial, currentWidth(), currentHeight(), resolveButtons());
+        this(initial, buildModel(currentWidth(), currentHeight()));
     }
 
-    private LtsxChatScreen(String initial, int width, int height, List<AdvancedChatWindowService.ChatButtonSpec> buttons) {
-        super(buildGui(width, height, buttons));
+    private LtsxChatScreen(String initial, int width, int height) {
+        this(initial, buildModel(width, height));
+    }
+
+    private LtsxChatScreen(String initial, ScreenModel model) {
+        super(buildGui(model));
         this.initial = Objects.requireNonNullElse(initial, "");
+        this.uiRegistry = model.registry();
+        this.registryVersion = model.registryVersion();
+        this.layout = model.layout();
     }
 
     @Override
@@ -89,7 +122,7 @@ public final class LtsxChatScreen extends FizzyScreenHost {
     @Override
     public void resize(Minecraft minecraft, int width, int height) {
         String current = this.input == null ? this.initial : this.input.getValue();
-        minecraft.setScreen(new LtsxChatScreen(current, width, height, resolveButtons()));
+        minecraft.setScreen(new LtsxChatScreen(current, width, height));
     }
 
     @Override
@@ -109,6 +142,9 @@ public final class LtsxChatScreen extends FizzyScreenHost {
 
     @Override
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        if (this.maybeRebuildForRegistryChange()) {
+            return true;
+        }
         if (this.commandSuggestions != null && this.commandSuggestions.keyPressed(keyCode, scanCode, modifiers)) {
             return true;
         }
@@ -147,9 +183,15 @@ public final class LtsxChatScreen extends FizzyScreenHost {
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+        if (this.maybeRebuildForRegistryChange()) {
+            return true;
+        }
         scrollY = Mth.clamp(scrollY, -1.0, 1.0);
         if (this.commandSuggestions != null && this.commandSuggestions.mouseScrolled(scrollY)) {
             return true;
+        }
+        if (!isGlobalChatPageActive()) {
+            return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
         }
         if (!hasShiftDown()) {
             scrollY *= MOUSE_SCROLL_SPEED;
@@ -160,17 +202,21 @@ public final class LtsxChatScreen extends FizzyScreenHost {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (this.maybeRebuildForRegistryChange()) {
+            return true;
+        }
         if (this.commandSuggestions != null && this.commandSuggestions.mouseClicked((double) ((int) mouseX), (double) ((int) mouseY), button)) {
             return true;
         }
 
-        if (button == 0) {
+        if (button == 0 && isGlobalChatPageActive()) {
             ChatComponent chat = this.minecraft.gui.getChat();
-            if (chat.handleChatQueueClicked(mouseX, mouseY + CHAT_WINDOW_OFFSET_PX)) {
+            double chatMouseY = transformMouseYForShiftedChat(mouseY);
+            if (chat.handleChatQueueClicked(mouseX, chatMouseY)) {
                 return true;
             }
 
-            Style style = this.getComponentStyleAt(mouseX, mouseY + CHAT_WINDOW_OFFSET_PX);
+            Style style = this.getComponentStyleAt(mouseX, chatMouseY);
             if (style != null && this.handleComponentClicked(style)) {
                 this.initial = this.input.getValue();
                 return true;
@@ -217,11 +263,19 @@ public final class LtsxChatScreen extends FizzyScreenHost {
 
     @Override
     public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
-        renderShiftedChat(guiGraphics, mouseX, mouseY);
-        guiGraphics.fill(2, this.height - 14, this.width - 2, this.height - 2, this.minecraft.options.getBackgroundColor(Integer.MIN_VALUE));
-        this.input.render(guiGraphics, mouseX, mouseY, partialTick);
-
+        if (this.maybeRebuildForRegistryChange()) {
+            return;
+        }
         super.render(guiGraphics, mouseX, mouseY, partialTick);
+
+        guiGraphics.fill(
+                2,
+                this.height - INPUT_BACKGROUND_TOP_OFFSET_PX,
+                this.width - 2,
+                this.height - INPUT_BACKGROUND_BOTTOM_OFFSET_PX,
+                this.minecraft.options.getBackgroundColor(Integer.MIN_VALUE)
+        );
+        this.input.render(guiGraphics, mouseX, mouseY, partialTick);
 
         guiGraphics.pose().pushPose();
         guiGraphics.pose().translate(0.0F, 0.0F, 200.0F);
@@ -230,13 +284,18 @@ public final class LtsxChatScreen extends FizzyScreenHost {
         }
         guiGraphics.pose().popPose();
 
-        GuiMessageTag messageTag = this.minecraft.gui.getChat().getMessageTagAt((double) mouseX, (double) mouseY + CHAT_WINDOW_OFFSET_PX);
+        if (!isGlobalChatPageActive()) {
+            return;
+        }
+
+        double chatMouseY = transformMouseYForShiftedChat(mouseY);
+        GuiMessageTag messageTag = this.minecraft.gui.getChat().getMessageTagAt((double) mouseX, chatMouseY);
         if (messageTag != null && messageTag.text() != null) {
             guiGraphics.renderTooltip(this.font, this.font.split(messageTag.text(), TOOLTIP_MAX_WIDTH), mouseX, mouseY);
             return;
         }
 
-        Style style = this.getComponentStyleAt((double) mouseX, (double) mouseY + CHAT_WINDOW_OFFSET_PX);
+        Style style = this.getComponentStyleAt((double) mouseX, chatMouseY);
         if (style != null && style.getHoverEvent() != null) {
             guiGraphics.renderComponentHoverEffect(this.font, style, mouseX, mouseY);
         }
@@ -278,6 +337,9 @@ public final class LtsxChatScreen extends FizzyScreenHost {
             this.minecraft.gui.getChat().addRecentChat(message);
         }
 
+        if (this.minecraft.player == null || this.minecraft.player.connection == null) {
+            return;
+        }
         if (message.startsWith("/")) {
             this.minecraft.player.connection.sendCommand(message.substring(1));
         } else {
@@ -289,90 +351,198 @@ public final class LtsxChatScreen extends FizzyScreenHost {
         return StringUtil.trimChatMessage(StringUtils.normalizeSpace(message.trim()));
     }
 
-    private void renderShiftedChat(GuiGraphics guiGraphics, int mouseX, int mouseY) {
-        guiGraphics.pose().pushPose();
-        guiGraphics.pose().translate(0.0F, -CHAT_WINDOW_OFFSET_PX, 0.0F);
-        this.minecraft.gui.getChat().render(guiGraphics, this.minecraft.gui.getGuiTicks(), mouseX, mouseY, true);
-        guiGraphics.pose().popPose();
+    private boolean isGlobalChatPageActive() {
+        return AdvancedChatWindowService.DEFAULT_CHAT_PAGE_ID.equals(this.uiRegistry.activePageId());
     }
 
-    private static FizzyGui buildGui(int width, int height, List<AdvancedChatWindowService.ChatButtonSpec> buttons) {
+    private double transformMouseYForShiftedChat(double mouseY) {
+        return mouseY - chatRenderTranslationY();
+    }
+
+    private int chatRenderTranslationY() {
+        int contentBottom = this.layout.contentY() + this.layout.contentHeight();
+        return ShiftedGlobalChatElement.computeRenderTranslationY(this.height, contentBottom);
+    }
+
+    private boolean maybeRebuildForRegistryChange() {
+        long currentVersion = this.uiRegistry.version();
+        if (currentVersion == this.registryVersion || this.minecraft == null) {
+            return false;
+        }
+        String currentInput = this.input == null ? this.initial : this.input.getValue();
+        this.minecraft.setScreen(new LtsxChatScreen(currentInput, this.width, this.height));
+        return true;
+    }
+
+    private void handleButtonClick(String buttonId) {
+        if (buttonId == null || buttonId.isBlank()) {
+            return;
+        }
+        this.uiRegistry.getButton(buttonId).ifPresent(buttonDefinition -> {
+            ChatButtonVisibilityContext visibilityContext = createVisibilityContext(this.uiRegistry);
+            if (!safeVisible(buttonDefinition, visibilityContext)) {
+                return;
+            }
+
+            PlayerIdentity identity = resolveIdentity();
+            if (buttonDefinition.targetPageId() != null && !buttonDefinition.targetPageId().isBlank()) {
+                this.uiRegistry.setActivePageId(buttonDefinition.targetPageId());
+            }
+
+            try {
+                buttonDefinition.press(new ScreenButtonActionContext(
+                        this,
+                        this.uiRegistry,
+                        identity.uuid(),
+                        identity.permissionLevel()
+                ));
+            } catch (Throwable throwable) {
+                LTSXAssistant.LOGGER.warn("Failed to execute advanced chat button action. id={}", buttonId, throwable);
+            }
+        });
+    }
+
+    private static void dispatchButtonClick(String buttonId) {
+        Minecraft minecraft = Minecraft.getInstance();
+        if (!(minecraft.screen instanceof LtsxChatScreen ltsxChatScreen)) {
+            return;
+        }
+        ltsxChatScreen.handleButtonClick(buttonId);
+    }
+
+    private static ScreenModel buildModel(int width, int height) {
+        AdvancedChatWindowService service = CoreServices.getOptional(AdvancedChatWindowService.class)
+                .orElseGet(AssistantAdvancedChatWindowService::new);
+        AdvancedChatUiRegistry registry = service.uiRegistry();
+
+        if (registry.getPage(AdvancedChatWindowService.DEFAULT_CHAT_PAGE_ID).isEmpty()) {
+            registry.upsertPage(ChatPageDefinition.builder(AdvancedChatWindowService.DEFAULT_CHAT_PAGE_ID)
+                    .fill(ShiftedGlobalChatElement::new)
+                    .build());
+        }
+        if (registry.activePageId() == null || registry.activePageId().isBlank()) {
+            registry.setActivePageId(AdvancedChatWindowService.DEFAULT_CHAT_PAGE_ID);
+        }
+
+        ScreenLayout layout = ScreenLayout.compute(width, height);
+        Map<String, List<ChatPageElementDefinition>> pages = materializePages(registry);
+        List<ChatButtonDefinition> buttons = visibleButtons(registry);
+        long version = registry.version();
+        return new ScreenModel(service, registry, version, layout, pages, buttons);
+    }
+
+    private static Map<String, List<ChatPageElementDefinition>> materializePages(AdvancedChatUiRegistry registry) {
+        Map<String, List<ChatPageElementDefinition>> out = new LinkedHashMap<>();
+        for (ChatPageDefinition pageDefinition : registry.listPages()) {
+            if (pageDefinition == null || pageDefinition.id() == null || pageDefinition.id().isBlank()) {
+                continue;
+            }
+            out.put(pageDefinition.id(), List.copyOf(pageDefinition.elements()));
+        }
+        if (out.isEmpty()) {
+            out.put(
+                    AdvancedChatWindowService.DEFAULT_CHAT_PAGE_ID,
+                    List.of(ChatPageElementDefinition.fill(ShiftedGlobalChatElement::new))
+            );
+        }
+        return out;
+    }
+
+    private static List<ChatButtonDefinition> visibleButtons(AdvancedChatUiRegistry registry) {
+        ChatButtonVisibilityContext visibilityContext = createVisibilityContext(registry);
+        List<ChatButtonDefinition> visible = new ArrayList<>();
+        for (ChatButtonDefinition buttonDefinition : registry.listButtons()) {
+            if (buttonDefinition == null) {
+                continue;
+            }
+            if (safeVisible(buttonDefinition, visibilityContext)) {
+                visible.add(buttonDefinition);
+            }
+        }
+        if (visible.isEmpty()) {
+            visible.add(ChatButtonDefinition.builder("chat", Component.literal("Chat"))
+                    .targetPageId(AdvancedChatWindowService.DEFAULT_CHAT_PAGE_ID)
+                    .style(ChatButtonStyle.DEFAULT)
+                    .build());
+        }
+        return List.copyOf(visible);
+    }
+
+    private static boolean safeVisible(ChatButtonDefinition buttonDefinition, ChatButtonVisibilityContext context) {
+        try {
+            return buttonDefinition.isVisible(context);
+        } catch (Throwable throwable) {
+            LTSXAssistant.LOGGER.warn("Failed to evaluate advanced chat button visibility. id={}", buttonDefinition.id(), throwable);
+            return false;
+        }
+    }
+
+    private static ChatButtonVisibilityContext createVisibilityContext(AdvancedChatUiRegistry registry) {
+        PlayerIdentity identity = resolveIdentity();
+        return new ChatButtonVisibilityContext(
+                registry,
+                identity.uuid(),
+                identity.permissionLevel(),
+                Objects.requireNonNullElse(registry.activePageId(), "")
+        );
+    }
+
+    private static FizzyGui buildGui(ScreenModel model) {
+        SwappableContentElement contentElement = new SwappableContentElement(
+                model.pagesById(),
+                model.registry()::activePageId,
+                AdvancedChatWindowService.DEFAULT_CHAT_PAGE_ID
+        );
+        ScreenLayout layout = model.layout();
+
         FizzyGuiBuilder builder = FizzyGuiBuilder.start()
                 .sizeSlots(1, 1)
                 .host(HostType.SCREEN)
                 .frame(new ViewportFramePainter())
                 .background(EmptyBackgroundPainter.INSTANCE)
-                .overrideSizePx(width, height);
-        addButtons(builder, width, height, buttons);
+                .overrideSizePx(layout.screenWidth(), layout.screenHeight());
+
+        builder.padByPx(layout.contentX(), layout.contentY(), layout.contentWidth(), layout.contentHeight())
+                .element(contentElement)
+                .done();
+        addButtons(builder, layout, model.visibleButtons());
         return builder.build();
     }
 
-    private static void addButtons(
-            FizzyGuiBuilder builder,
-            int width,
-            int height,
-            List<AdvancedChatWindowService.ChatButtonSpec> buttons
-    ) {
+    private static void addButtons(FizzyGuiBuilder builder, ScreenLayout layout, List<ChatButtonDefinition> buttons) {
         if (buttons == null || buttons.isEmpty()) {
             return;
         }
 
         Minecraft minecraft = Minecraft.getInstance();
-        int cursorX = BUTTON_SIDE_MARGIN_PX;
-        int rowY = Math.max(0, height - BUTTON_BOTTOM_Y_PX);
-        int maxRight = Math.max(BUTTON_SIDE_MARGIN_PX, width - BUTTON_SIDE_MARGIN_PX);
+        int cursorX = layout.buttonX() + BUTTON_SIDE_MARGIN_PX;
+        int rowY = layout.buttonY();
+        int maxRight = layout.buttonX() + layout.buttonWidth() - BUTTON_SIDE_MARGIN_PX;
 
-        for (AdvancedChatWindowService.ChatButtonSpec spec : buttons) {
-            if (spec == null) {
+        for (ChatButtonDefinition definition : buttons) {
+            if (definition == null) {
                 continue;
             }
-            int tagWidth = Math.max(24, minecraft.font.width(spec.label()) + BUTTON_TEXT_PADDING_PX * 2);
+            int tagWidth = Math.max(24, minecraft.font.width(definition.label()) + BUTTON_TEXT_PADDING_PX * 2);
             int padWidth = tagWidth + 1;
             if (cursorX + padWidth > maxRight) {
                 break;
             }
-            builder.padByPx(cursorX, rowY, padWidth, BUTTON_HEIGHT_PX)
-                    .element(BadgeButtonElement.builder(() -> dispatchButtonClick(spec.button()))
-                            .text(spec.label())
+
+            ChatButtonStyle style = definition.style() == null ? ChatButtonStyle.DEFAULT : definition.style();
+            String buttonId = definition.id();
+            builder.padByPx(cursorX, rowY, padWidth, BUTTON_ROW_HEIGHT_PX)
+                    .element(BadgeButtonElement.builder(() -> dispatchButtonClick(buttonId))
+                            .text(definition.label())
                             .tagWidthPx(tagWidth)
-                            .shadow(true)
+                            .outlineColor(style.outlineColor())
+                            .fillColor(style.fillColor())
+                            .textColor(style.textColor())
+                            .disabledTextColor(style.disabledTextColor())
                             .build())
                     .done();
             cursorX += padWidth + BUTTON_GAP_PX;
         }
-    }
-
-    private static void dispatchButtonClick(AdvancedChatWindowService.ChatButton button) {
-        if (button == null) {
-            return;
-        }
-        CoreServices.getOptional(AdvancedChatWindowService.class)
-                .ifPresent(service -> service.onButtonPressed(button));
-    }
-
-    private static List<AdvancedChatWindowService.ChatButtonSpec> resolveButtons() {
-        LocalPlayer player = Minecraft.getInstance().player;
-        UUIDLike identity = player == null
-                ? new UUIDLike(null, 0)
-                : new UUIDLike(player.getUUID(), player.getPermissionLevel());
-        return CoreServices.getOptional(AdvancedChatWindowService.class)
-                .map(service -> service.resolveButtons(identity.uuid(), identity.permissionLevel()))
-                .orElseGet(() -> {
-                    List<AdvancedChatWindowService.ChatButtonSpec> fallback = new ArrayList<>(3);
-                    fallback.add(new AdvancedChatWindowService.ChatButtonSpec(
-                            AdvancedChatWindowService.ChatButton.CHAT,
-                            Component.literal("Chat")
-                    ));
-                    fallback.add(new AdvancedChatWindowService.ChatButtonSpec(
-                            AdvancedChatWindowService.ChatButton.GROUP,
-                            Component.literal("Group")
-                    ));
-                    fallback.add(new AdvancedChatWindowService.ChatButtonSpec(
-                            AdvancedChatWindowService.ChatButton.AGENT,
-                            Component.literal("Agent")
-                    ));
-                    return List.copyOf(fallback);
-                });
     }
 
     private static int currentWidth() {
@@ -385,7 +555,161 @@ public final class LtsxChatScreen extends FizzyScreenHost {
         return minecraft == null ? 240 : minecraft.getWindow().getGuiScaledHeight();
     }
 
-    private record UUIDLike(@Nullable java.util.UUID uuid, int permissionLevel) {
+    private static PlayerIdentity resolveIdentity() {
+        Minecraft minecraft = Minecraft.getInstance();
+        LocalPlayer player = minecraft == null ? null : minecraft.player;
+        return player == null
+                ? new PlayerIdentity(null, 0)
+                : new PlayerIdentity(player.getUUID(), player.getPermissionLevel());
+    }
+
+    private record PlayerIdentity(@Nullable UUID uuid, int permissionLevel) {
+    }
+
+    private record ScreenModel(
+            AdvancedChatWindowService service,
+            AdvancedChatUiRegistry registry,
+            long registryVersion,
+            ScreenLayout layout,
+            Map<String, List<ChatPageElementDefinition>> pagesById,
+            List<ChatButtonDefinition> visibleButtons
+    ) {
+    }
+
+    private record ScreenLayout(
+            int screenWidth,
+            int screenHeight,
+            int contentX,
+            int contentY,
+            int contentWidth,
+            int contentHeight,
+            int buttonX,
+            int buttonY,
+            int buttonWidth,
+            int buttonHeight
+    ) {
+        private static ScreenLayout compute(int width, int height) {
+            Minecraft minecraft = Minecraft.getInstance();
+            int maxContentWidth = Math.max(1, width - 4);
+            int contentWidth = maxContentWidth;
+            int contentHeight = Math.max(40, height / 3);
+            if (minecraft != null && minecraft.gui != null && minecraft.gui.getChat() != null) {
+                ChatComponent chat = minecraft.gui.getChat();
+                contentWidth = Mth.clamp(Mth.ceil(chat.getWidth()) + 8, 1, maxContentWidth);
+                contentHeight = Mth.clamp(
+                        Mth.ceil(chat.getHeight() * chat.getScale()),
+                        40,
+                        Math.max(40, height - 20)
+                );
+            }
+
+            int inputTop = height - INPUT_BACKGROUND_TOP_OFFSET_PX;
+            int buttonBottomLimit = inputTop - BUTTON_INPUT_GAP_PX;
+            int defaultContentBottom = height - 40 - CHAT_CONTENT_SHIFT_UP_PX;
+            int maxContentBottom = buttonBottomLimit - BUTTON_ROW_HEIGHT_PX - CONTENT_BUTTON_GAP_PX;
+            int contentBottom = Math.min(defaultContentBottom, maxContentBottom);
+            int contentY = contentBottom - contentHeight;
+            if (contentY < MIN_CONTENT_TOP_PX) {
+                contentY = MIN_CONTENT_TOP_PX;
+                contentHeight = Math.max(1, contentBottom - contentY);
+            }
+
+            int buttonY = contentBottom + CONTENT_BUTTON_GAP_PX;
+            if (buttonY + BUTTON_ROW_HEIGHT_PX > buttonBottomLimit) {
+                buttonY = buttonBottomLimit - BUTTON_ROW_HEIGHT_PX;
+            }
+
+            return new ScreenLayout(
+                    width,
+                    height,
+                    2,
+                    contentY,
+                    contentWidth,
+                    contentHeight,
+                    2,
+                    Math.max(0, buttonY),
+                    contentWidth,
+                    BUTTON_ROW_HEIGHT_PX
+            );
+        }
+    }
+
+    private static final class ScreenButtonActionContext implements ChatButtonActionContext {
+        private final LtsxChatScreen screen;
+        private final AdvancedChatUiRegistry registry;
+        @Nullable
+        private final UUID playerId;
+        private final int permissionLevel;
+
+        private ScreenButtonActionContext(
+                LtsxChatScreen screen,
+                AdvancedChatUiRegistry registry,
+                @Nullable UUID playerId,
+                int permissionLevel
+        ) {
+            this.screen = screen;
+            this.registry = registry;
+            this.playerId = playerId;
+            this.permissionLevel = permissionLevel;
+        }
+
+        @Override
+        public AdvancedChatUiRegistry registry() {
+            return registry;
+        }
+
+        @Override
+        @Nullable
+        public UUID playerId() {
+            return playerId;
+        }
+
+        @Override
+        public int permissionLevel() {
+            return permissionLevel;
+        }
+
+        @Override
+        public String activePageId() {
+            return Objects.requireNonNullElse(registry.activePageId(), "");
+        }
+
+        @Override
+        public void setActivePageId(String pageId) {
+            registry.setActivePageId(pageId);
+        }
+
+        @Override
+        public void openScreen(Screen screen) {
+            if (screen == null || this.screen.minecraft == null) {
+                return;
+            }
+            this.screen.minecraft.setScreen(screen);
+        }
+
+        @Override
+        public void closeScreen() {
+            if (this.screen.minecraft == null) {
+                return;
+            }
+            this.screen.minecraft.setScreen(null);
+        }
+
+        @Override
+        public void openFile(Path path) {
+            if (path == null) {
+                return;
+            }
+            Util.getPlatform().openFile(path.toFile());
+        }
+
+        @Override
+        public void openUri(String uri) {
+            if (uri == null || uri.isBlank()) {
+                return;
+            }
+            Util.getPlatform().openUri(uri);
+        }
     }
 
     private static final class ViewportFramePainter implements FramePainter {
