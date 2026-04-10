@@ -7,6 +7,7 @@ import link.botwmcs.core.api.module.CoreModuleContext;
 import link.botwmcs.core.api.module.ICoreModule;
 import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
+import link.botwmcs.ltsxassistant.api.chat.AdvancedChatWindowService;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicPlaybackApi;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicSceneApi;
@@ -16,6 +17,7 @@ import link.botwmcs.ltsxassistant.net.soundengine.AssistantMusicNetworkBootstrap
 import link.botwmcs.ltsxassistant.client.AssistantMusicScreenProxyContributor;
 import link.botwmcs.ltsxassistant.client.AssistantSoundOptionsMusicPlayerProxyContributor;
 import link.botwmcs.ltsxassistant.client.AssistantTitleScreenProxyContributor;
+import link.botwmcs.ltsxassistant.service.chat.AssistantAdvancedChatWindowService;
 import link.botwmcs.ltsxassistant.service.soundengine.AssistantMusicEngineService;
 import link.botwmcs.ltsxassistant.service.soundengine.AssistantMusicServerControlService;
 import net.minecraft.network.chat.Component;
@@ -56,6 +58,8 @@ public final class AssistantCoreModule implements ICoreModule {
         AssistantMusicNetworkBootstrap.bootstrap(ctx.logger());
 
         if (FMLEnvironment.dist.isClient()) {
+            CoreServices.registerIfAbsent(AdvancedChatWindowService.class, new AssistantAdvancedChatWindowService());
+
             AssistantTitleScreenProxyContributor titleContributor = new AssistantTitleScreenProxyContributor();
             AssistantMusicScreenProxyContributor musicContributor = new AssistantMusicScreenProxyContributor();
             AssistantSoundOptionsMusicPlayerProxyContributor soundOptionsContributor = new AssistantSoundOptionsMusicPlayerProxyContributor();

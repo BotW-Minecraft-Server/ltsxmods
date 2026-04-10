@@ -4,6 +4,9 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
+    "chat.accessor.ChatScreenAccessor",
+    "chat.MixinMinecraftChatScreenRedirect",
+    "chat.MixinChatComponentFocus",
     "soundengine.MixinMusicManager",
     "soundengine.MixinScreenBackgroundMusic"
   ],
