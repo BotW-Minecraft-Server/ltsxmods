@@ -6,6 +6,7 @@ import link.botwmcs.core.api.fizzier.proxy.IFizzyProxyService;
 import link.botwmcs.core.api.module.CoreModuleContext;
 import link.botwmcs.core.api.module.ICoreModule;
 import link.botwmcs.core.service.CoreServices;
+import link.botwmcs.ltsxassistant.api.account.LittleSkinAccountServiceApi;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
 import link.botwmcs.ltsxassistant.api.chat.AdvancedChatWindowService;
 import link.botwmcs.ltsxassistant.api.soundengine.MusicCoverApi;
@@ -17,6 +18,7 @@ import link.botwmcs.ltsxassistant.net.soundengine.AssistantMusicNetworkBootstrap
 import link.botwmcs.ltsxassistant.client.AssistantMusicScreenProxyContributor;
 import link.botwmcs.ltsxassistant.client.AssistantSoundOptionsMusicPlayerProxyContributor;
 import link.botwmcs.ltsxassistant.client.AssistantTitleScreenProxyContributor;
+import link.botwmcs.ltsxassistant.service.account.LittleSkinAccountService;
 import link.botwmcs.ltsxassistant.service.chat.AssistantAdvancedChatWindowService;
 import link.botwmcs.ltsxassistant.service.soundengine.AssistantMusicEngineService;
 import link.botwmcs.ltsxassistant.service.soundengine.AssistantMusicServerControlService;
@@ -58,6 +60,7 @@ public final class AssistantCoreModule implements ICoreModule {
         AssistantMusicNetworkBootstrap.bootstrap(ctx.logger());
 
         if (FMLEnvironment.dist.isClient()) {
+            CoreServices.registerIfAbsent(LittleSkinAccountServiceApi.class, new LittleSkinAccountService());
             CoreServices.registerIfAbsent(AdvancedChatWindowService.class, new AssistantAdvancedChatWindowService());
 
             AssistantTitleScreenProxyContributor titleContributor = new AssistantTitleScreenProxyContributor();
@@ -72,6 +75,7 @@ public final class AssistantCoreModule implements ICoreModule {
                 soundOptionsContributor.contribute(proxyService);
                 ctx.logger().info("{}Applied assistant proxy rules immediately. count={}", LOG_PREFIX, proxyService.ruleCount());
             });
+            ctx.logger().info("{}Registered LittleSkin account service skeleton (LS0).", LOG_PREFIX);
             ctx.logger().info("{}Registered assistant TitleScreen proxy contributor.", LOG_PREFIX);
             ctx.logger().info("{}Registered assistant music screen proxy contributor.", LOG_PREFIX);
             ctx.logger().info("{}Registered assistant sound options music entry proxy contributor.", LOG_PREFIX);

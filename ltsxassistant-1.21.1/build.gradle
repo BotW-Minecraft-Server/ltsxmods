@@ -75,7 +75,12 @@ configurations {
 dependencies {
     // All workspace feature mods depend on core.
     implementation project(':ltsxcore')
-    implementation 'com.github.st-h:TarsosDSP:2.4.1'
+    implementation 'com.google.code.gson:gson:2.10.1'
+    implementation 'thedarkcolour:kotlinforforge-neoforge:5.10.0'
+    // OkHttp 4.x only needs the Kotlin runtime; it does not require KotlinForForge
+    // unless this mod itself is written in Kotlin.
+    jarJar(implementation('com.squareup.okhttp3:okhttp:4.12.0'))
+    jarJar(implementation('com.github.st-h:TarsosDSP:2.4.1'))
 }
 
 var generateModMetadata = tasks.register("generateModMetadata", ProcessResources) {

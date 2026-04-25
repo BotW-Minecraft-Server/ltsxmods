@@ -3,6 +3,7 @@ package link.botwmcs.ltsxassistant.client.screen;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import link.botwmcs.core.service.CoreServices;
 import link.botwmcs.fizzy.client.elements.VanillaLikeAbstractButton;
 import link.botwmcs.fizzy.client.util.TextRenderer;
 import link.botwmcs.fizzy.ui.background.BgPainter;
@@ -19,6 +20,11 @@ import link.botwmcs.fizzy.ui.frame.FrameMetrics;
 import link.botwmcs.fizzy.ui.frame.FramePainter;
 import link.botwmcs.fizzy.ui.host.FizzyScreenHost;
 import link.botwmcs.ltsxassistant.LTSXAssistant;
+import link.botwmcs.ltsxassistant.api.account.LittleSkinAccountServiceApi;
+import link.botwmcs.ltsxassistant.api.account.LittleSkinAccountSnapshot;
+import link.botwmcs.ltsxassistant.api.account.LittleSkinClosetItemSummary;
+import link.botwmcs.ltsxassistant.api.account.LittleSkinConnectionState;
+import link.botwmcs.ltsxassistant.api.account.LittleSkinDeviceAuthSnapshot;
 import link.botwmcs.ltsxassistant.client.elements.AutoWrapCellListElement;
 import link.botwmcs.ltsxassistant.client.elements.BadgeComponentElement;
 import link.botwmcs.ltsxassistant.client.elements.DarkPanelElement;
@@ -27,6 +33,7 @@ import link.botwmcs.ltsxassistant.client.elements.PlayerEntityElements;
 import link.botwmcs.ltsxassistant.client.elements.SkinSourceTabElement;
 import link.botwmcs.ltsxassistant.client.utils.PlayerHeadRenderUtils;
 import link.botwmcs.ltsxassistant.client.utils.PlayerSkinPaletteUtils;
+import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
@@ -38,6 +45,7 @@ import net.minecraft.network.chat.Component;
 public final class SkinWorkbenchScreen extends FizzyScreenHost {
     private static final Component TITLE = Component.translatable("screen.ltsxassistant.skin_workbench.title");
     private final SourceTab sourceTab;
+    private final long accountSnapshotVersion;
 
     public SkinWorkbenchScreen() {
         this(SourceTab.LITTLE_SKIN, currentWidth(), currentHeight());
@@ -48,8 +56,18 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
     }
 
     private SkinWorkbenchScreen(SourceTab sourceTab, int width, int height) {
-        super(buildGui(Objects.requireNonNull(sourceTab, "sourceTab"), width, height));
+        this(sourceTab, width, height, currentLittleSkinSnapshot());
+    }
+
+    private SkinWorkbenchScreen(
+            SourceTab sourceTab,
+            int width,
+            int height,
+            LittleSkinAccountSnapshot accountSnapshot
+    ) {
+        super(buildGui(Objects.requireNonNull(sourceTab, "sourceTab"), width, height, accountSnapshot));
         this.sourceTab = sourceTab;
+        this.accountSnapshotVersion = accountSnapshot.version();
     }
 
     public static void open(SourceTab tab) {
@@ -66,6 +84,14 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
     }
 
     @Override
+    public void render(GuiGraphics guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (maybeRebuildForAccountChange()) {
+            return;
+        }
+        super.render(guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    @Override
     public Component getNarrationMessage() {
         return TITLE;
     }
@@ -75,7 +101,24 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
         return false;
     }
 
-    private static FizzyGui buildGui(SourceTab sourceTab, int width, int height) {
+    private boolean maybeRebuildForAccountChange() {
+        if (minecraft == null) {
+            return false;
+        }
+        long currentVersion = currentLittleSkinSnapshot().version();
+        if (currentVersion == accountSnapshotVersion) {
+            return false;
+        }
+        minecraft.setScreen(new SkinWorkbenchScreen(sourceTab, width, height));
+        return true;
+    }
+
+    private static FizzyGui buildGui(
+            SourceTab sourceTab,
+            int width,
+            int height,
+            LittleSkinAccountSnapshot accountSnapshot
+    ) {
         FizzyGuiBuilder builder = FizzyGuiBuilder.start()
                 .sizeSlots(1, 1)
                 .host(HostType.SCREEN)
@@ -106,8 +149,8 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
         int rightX = leftX + leftWidth + sectionGap;
 
         addTitle(builder, contentX, margin, contentWidth);
-        addLeftPreviewSection(builder, leftX, contentY, leftWidth, contentHeight);
-        addRightSkinSection(builder, sourceTab, rightX, contentY, rightWidth, contentHeight);
+        addLeftPreviewSection(builder, sourceTab, leftX, contentY, leftWidth, contentHeight);
+        addRightSkinSection(builder, sourceTab, accountSnapshot, rightX, contentY, rightWidth, contentHeight);
         return builder.build();
     }
 
@@ -123,7 +166,14 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                 .done();
     }
 
-    private static void addLeftPreviewSection(FizzyGuiBuilder builder, int x, int y, int width, int height) {
+    private static void addLeftPreviewSection(
+            FizzyGuiBuilder builder,
+            SourceTab sourceTab,
+            int x,
+            int y,
+            int width,
+            int height
+    ) {
         builder.padByPx(x, y, width, height)
                 .element(new DarkPanelElement(0xE1131418, 0xE11B1C22))
                 .done();
@@ -157,7 +207,7 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                         Math.max(LayoutConfig.CELL_PLAYER_MIN_SIZE_PX, buttonRowWidth - LayoutConfig.LEFT_ICON_BUTTON_SIZE_PX - LayoutConfig.LEFT_BUTTON_GAP_PX),
                         LayoutConfig.LEFT_ICON_BUTTON_SIZE_PX
                 )
-                .element(buildLeftLittleSkinButton())
+                .element(buildLeftLittleSkinButton(sourceTab))
                 .done();
     }
 
@@ -197,6 +247,7 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
     private static void addRightSkinSection(
             FizzyGuiBuilder builder,
             SourceTab sourceTab,
+            LittleSkinAccountSnapshot accountSnapshot,
             int x,
             int y,
             int width,
@@ -223,7 +274,7 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
         int innerWidth = Math.max(1, panelWidth - panelPadding * 2);
         int innerHeight = Math.max(1, panelHeight - panelPadding * 2);
 
-        addRightTabPage(builder, sourceTab, innerX, innerY, innerWidth, innerHeight);
+        addRightTabPage(builder, sourceTab, accountSnapshot, innerX, innerY, innerWidth, innerHeight);
     }
 
     private static ElementPainter buildTabElement(SourceTab sourceTab) {
@@ -251,25 +302,14 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
     private static void addRightTabPage(
             FizzyGuiBuilder builder,
             SourceTab sourceTab,
+            LittleSkinAccountSnapshot accountSnapshot,
             int x,
             int y,
             int width,
             int height
     ) {
         if (sourceTab == SourceTab.LITTLE_SKIN) {
-            if (!isLittleSkinConnectedPlaceholder()) {
-                addCenteredStatusPage(
-                        builder,
-                        x,
-                        y,
-                        width,
-                        height,
-                        Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.disconnected"),
-                        buildLittleSkinConnectPageButton()
-                );
-                return;
-            }
-            addScrollableListPage(builder, SourceTab.LITTLE_SKIN, x, y, width, height);
+            addLittleSkinTabPage(builder, accountSnapshot, x, y, width, height);
             return;
         }
 
@@ -301,6 +341,171 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                 .done();
     }
 
+    private static void addLittleSkinTabPage(
+            FizzyGuiBuilder builder,
+            LittleSkinAccountSnapshot snapshot,
+            int x,
+            int y,
+            int width,
+            int height
+    ) {
+        LittleSkinDeviceAuthSnapshot deviceAuthorization = snapshot.deviceAuthorization();
+        if (deviceAuthorization.active()) {
+            addDeviceAuthorizationPage(builder, snapshot, x, y, width, height);
+            return;
+        }
+
+        switch (snapshot.connectionState()) {
+            case DISCONNECTED -> addCenteredStatusPage(
+                    builder,
+                    x,
+                    y,
+                    width,
+                    height,
+                    Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.disconnected"),
+                    buildLittleSkinConnectPageButton()
+            );
+            case REQUESTING_DEVICE_CODE, RESTORING_SESSION, SYNCING, POLLING_TOKEN, WAITING_USER_AUTH -> addCenteredStatusPage(
+                    builder,
+                    x,
+                    y,
+                    width,
+                    height,
+                    littleSkinStatusMessage(snapshot, "screen.ltsxassistant.skin_workbench.page.littleskin.loading"),
+                    null
+            );
+            case READY -> {
+                if (snapshot.closetItems().isEmpty()) {
+                    addCenteredStatusPage(
+                            builder,
+                            x,
+                            y,
+                            width,
+                            height,
+                            Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.empty"),
+                            buildLittleSkinRefreshPageButton()
+                    );
+                    return;
+                }
+                addLittleSkinClosetPage(builder, snapshot, x, y, width, height);
+            }
+            case ERROR -> addCenteredStatusPage(
+                    builder,
+                    x,
+                    y,
+                    width,
+                    height,
+                    littleSkinErrorMessage(snapshot),
+                    snapshot.storedSessionPresent()
+                            ? buildLittleSkinRefreshPageButton()
+                            : buildLittleSkinConnectPageButton()
+            );
+            case UPDATING_TEXTURE -> addCenteredStatusPage(
+                    builder,
+                    x,
+                    y,
+                    width,
+                    height,
+                    littleSkinStatusMessage(snapshot, "screen.ltsxassistant.skin_workbench.page.littleskin.loading"),
+                    null
+            );
+        }
+    }
+
+    private static void addLittleSkinClosetPage(
+            FizzyGuiBuilder builder,
+            LittleSkinAccountSnapshot snapshot,
+            int x,
+            int y,
+            int width,
+            int height
+    ) {
+        builder.padByPx(x, y, width, height)
+                .element(buildClosetScroller(snapshot.closetItems(), width, height))
+                .done();
+    }
+
+    private static void addDeviceAuthorizationPage(
+            FizzyGuiBuilder builder,
+            LittleSkinAccountSnapshot snapshot,
+            int x,
+            int y,
+            int width,
+            int height
+    ) {
+        LittleSkinDeviceAuthSnapshot deviceAuthorization = snapshot.deviceAuthorization();
+        int blockWidth = Math.max(1, width - LayoutConfig.PAGE_SIDE_PADDING_PX * 2);
+        int blockX = x + Math.max(0, (width - blockWidth) / 2);
+        int titleHeight = Minecraft.getInstance().font.lineHeight * 2;
+        int codeHeight = Minecraft.getInstance().font.lineHeight * 3;
+        int statusHeight = Math.min(
+                LayoutConfig.PAGE_STATUS_MAX_HEIGHT_PX,
+                Math.max(30, Minecraft.getInstance().font.lineHeight * 4)
+        );
+        int blockHeight = titleHeight
+                + LayoutConfig.PAGE_SECTION_GAP_PX
+                + codeHeight
+                + LayoutConfig.PAGE_SECTION_GAP_PX
+                + statusHeight
+                + LayoutConfig.PAGE_TEXT_BUTTON_GAP_PX
+                + LayoutConfig.PAGE_BUTTON_HEIGHT_PX;
+        int startY = y + Math.max(0, (height - blockHeight) / 2);
+
+        addCenteredTextBlock(
+                builder,
+                blockX,
+                startY,
+                blockWidth,
+                titleHeight,
+                Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.auth.title")
+        );
+        addCenteredTextBlock(
+                builder,
+                blockX,
+                startY + titleHeight + LayoutConfig.PAGE_SECTION_GAP_PX,
+                blockWidth,
+                codeHeight,
+                Component.literal(deviceAuthorization.userCode())
+        );
+        addCenteredTextBlock(
+                builder,
+                blockX,
+                startY + titleHeight + codeHeight + LayoutConfig.PAGE_SECTION_GAP_PX * 2,
+                blockWidth,
+                statusHeight,
+                littleSkinAuthStatusMessage(snapshot)
+        );
+        builder.padByPx(
+                        x + Math.max(0, (width - LayoutConfig.PAGE_BUTTON_MAX_WIDTH_PX) / 2),
+                        startY + blockHeight - LayoutConfig.PAGE_BUTTON_HEIGHT_PX,
+                        Math.min(LayoutConfig.PAGE_BUTTON_MAX_WIDTH_PX, blockWidth),
+                        LayoutConfig.PAGE_BUTTON_HEIGHT_PX
+                )
+                .element(buildLittleSkinOpenBrowserButton(deviceAuthorization))
+                .done();
+    }
+
+    private static void addCenteredTextBlock(
+            FizzyGuiBuilder builder,
+            int x,
+            int y,
+            int width,
+            int height,
+            Component message
+    ) {
+        builder.padByPx(x, y, width, height)
+                .element(new FizzyComponentElement.Builder()
+                        .addText(message)
+                        .align(TextRenderer.Align.CENTER)
+                        .shadow(true)
+                        .wrap(true)
+                        .autoEllipsis(true)
+                        .clipToPad(true)
+                        .allowOverflow(false)
+                        .build())
+                .done();
+    }
+
     private static void addCenteredStatusPage(
             FizzyGuiBuilder builder,
             int x,
@@ -321,7 +526,9 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                 LayoutConfig.PAGE_BUTTON_MIN_WIDTH_PX,
                 LayoutConfig.PAGE_BUTTON_MAX_WIDTH_PX
         );
-        int blockHeight = textHeight + LayoutConfig.PAGE_TEXT_BUTTON_GAP_PX + LayoutConfig.PAGE_BUTTON_HEIGHT_PX;
+        int blockHeight = actionButton == null
+                ? textHeight
+                : textHeight + LayoutConfig.PAGE_TEXT_BUTTON_GAP_PX + LayoutConfig.PAGE_BUTTON_HEIGHT_PX;
         int startY = y + Math.max(0, (height - blockHeight) / 2);
         int buttonX = x + Math.max(0, (width - buttonWidth) / 2);
 
@@ -337,19 +544,16 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                         .build())
                 .done();
 
-        builder.padByPx(
-                        buttonX,
-                        startY + textHeight + LayoutConfig.PAGE_TEXT_BUTTON_GAP_PX,
-                        buttonWidth,
-                        LayoutConfig.PAGE_BUTTON_HEIGHT_PX
-                )
-                .element(actionButton)
-                .done();
-    }
-
-    private static boolean isLittleSkinConnectedPlaceholder() {
-        // TODO replace with actual LittleSkin OAuth state.
-        return false;
+        if (actionButton != null) {
+            builder.padByPx(
+                            buttonX,
+                            startY + textHeight + LayoutConfig.PAGE_TEXT_BUTTON_GAP_PX,
+                            buttonWidth,
+                            LayoutConfig.PAGE_BUTTON_HEIGHT_PX
+                    )
+                    .element(actionButton)
+                    .done();
+        }
     }
 
     private static boolean hasLocalSkinsPlaceholder() {
@@ -402,6 +606,77 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                         pad -> pad.element(new PlayerEntityElements(false))
                 );
                 cellBuilder.element(buildCellHoverActionElement(cell, cellIndex, cellWidth, cellHeight));
+            });
+        }
+        AutoWrapCellListElement listElement = listBuilder.build();
+        int contentHeight = Math.max(viewportHeight, listElement.measureContentHeight(contentWidth));
+
+        SimpleDraggableElement.ContentBuilder contentBuilder = SimpleDraggableElement.contentBuilder();
+        contentBuilder.contentHeightPx(contentHeight);
+        contentBuilder.padByPx(0, 0, contentWidth, contentHeight)
+                .element(listElement)
+                .done();
+
+        return SimpleDraggableElement.builder(contentBuilder.build())
+                .wheelStepPx(LayoutConfig.SCROLL_WHEEL_STEP_PX)
+                .scrollbarWidthPx(LayoutConfig.SCROLLBAR_WIDTH_PX)
+                .scrollbarGapPx(LayoutConfig.SCROLLBAR_GAP_PX)
+                .minThumbHeightPx(LayoutConfig.SCROLLBAR_MIN_THUMB_HEIGHT_PX)
+                .build();
+    }
+
+    private static ElementPainter buildClosetScroller(
+            List<LittleSkinClosetItemSummary> closetItems,
+            int viewportWidth,
+            int viewportHeight
+    ) {
+        int contentWidth = Math.max(1, viewportWidth - LayoutConfig.SCROLLBAR_WIDTH_PX - LayoutConfig.SCROLLBAR_GAP_PX);
+        int cardHeight = LayoutConfig.CLOSET_CARD_HEIGHT_PX;
+
+        AutoWrapCellListElement.Builder listBuilder = AutoWrapCellListElement.builder()
+                .gapPx(0, LayoutConfig.GRID_ROW_GAP_PX)
+                .rowAlign(AutoWrapCellListElement.RowAlign.JUSTIFY)
+                .paddingPx(0, 0, 0, 0);
+        for (LittleSkinClosetItemSummary item : closetItems) {
+            listBuilder.cell(cellBuilder -> {
+                cellBuilder.sizePx(contentWidth, cardHeight);
+                cellBuilder.element(new DarkPanelElement(0xD512141A, 0xD51A1C26));
+                cellBuilder.padByPx(
+                        LayoutConfig.CLOSET_CARD_SIDE_PADDING_PX,
+                        LayoutConfig.CLOSET_CARD_TOP_PADDING_PX,
+                        Math.max(1, contentWidth - LayoutConfig.CLOSET_CARD_SIDE_PADDING_PX * 2),
+                        18,
+                        pad -> pad.element(new FizzyComponentElement.Builder()
+                                .addText(Component.literal(resolveClosetDisplayName(item)))
+                                .shadow(true)
+                                .wrap(false)
+                                .autoEllipsis(true)
+                                .build())
+                );
+                cellBuilder.padByPx(
+                        LayoutConfig.CLOSET_CARD_SIDE_PADDING_PX,
+                        LayoutConfig.CLOSET_CARD_TOP_PADDING_PX + 20,
+                        Math.max(1, contentWidth - LayoutConfig.CLOSET_CARD_SIDE_PADDING_PX * 2),
+                        14,
+                        pad -> pad.element(new FizzyComponentElement.Builder()
+                                .addText(Component.literal(resolveClosetMetaLine(item)))
+                                .shadow(true)
+                                .wrap(false)
+                                .autoEllipsis(true)
+                                .build())
+                );
+                cellBuilder.padByPx(
+                        LayoutConfig.CLOSET_CARD_SIDE_PADDING_PX,
+                        LayoutConfig.CLOSET_CARD_TOP_PADDING_PX + 38,
+                        Math.max(1, contentWidth - LayoutConfig.CLOSET_CARD_SIDE_PADDING_PX * 2),
+                        14,
+                        pad -> pad.element(new FizzyComponentElement.Builder()
+                                .addText(Component.literal(resolveClosetIdLine(item)))
+                                .shadow(true)
+                                .wrap(false)
+                                .autoEllipsis(true)
+                                .build())
+                );
             });
         }
         AutoWrapCellListElement listElement = listBuilder.build();
@@ -516,8 +791,12 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                 .build();
     }
 
-    private static VanillaLikeButtonElement buildLeftLittleSkinButton() {
-        return VanillaLikeButtonElement.builder(button -> LTSXAssistant.LOGGER.info("[ltsxassistant] TODO connect LittleSkin account."))
+    private static VanillaLikeButtonElement buildLeftLittleSkinButton(SourceTab sourceTab) {
+        return VanillaLikeButtonElement.builder(button -> {
+                    if (sourceTab != SourceTab.LITTLE_SKIN) {
+                        open(SourceTab.LITTLE_SKIN);
+                    }
+                })
                 .colorTheme(VanillaLikeAbstractButton.ColorTheme.BLUE)
                 .layout(VanillaLikeButtonElement.ContentLayout.TEXT_LEFT_ICON_RIGHT)
                 .text(new FizzyComponentElement.Builder()
@@ -537,7 +816,7 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
 
     private static VanillaLikeButtonElement buildLittleSkinConnectPageButton() {
         return VanillaLikeButtonElement.builder(
-                        button -> LTSXAssistant.LOGGER.info("[ltsxassistant] TODO open LittleSkin OAuth connect page in browser.")
+                        button -> littleSkinService().ifPresent(LittleSkinAccountServiceApi::beginDeviceAuthorization)
                 )
                 .colorTheme(VanillaLikeAbstractButton.ColorTheme.BLUE)
                 .text(new FizzyComponentElement.Builder()
@@ -549,6 +828,40 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                         .build())
                 .tooltip(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.connect.tooltip"))
                 .narration(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.connect.narration"))
+                .build();
+    }
+
+    private static VanillaLikeButtonElement buildLittleSkinRefreshPageButton() {
+        return VanillaLikeButtonElement.builder(
+                        button -> littleSkinService().ifPresent(LittleSkinAccountServiceApi::refreshAccountSnapshot)
+                )
+                .colorTheme(VanillaLikeAbstractButton.ColorTheme.BLUE)
+                .text(new FizzyComponentElement.Builder()
+                        .addText(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.refresh.button"))
+                        .align(TextRenderer.Align.CENTER)
+                        .shadow(true)
+                        .wrap(false)
+                        .autoEllipsis(true)
+                        .build())
+                .tooltip(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.refresh.tooltip"))
+                .narration(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.refresh.narration"))
+                .build();
+    }
+
+    private static VanillaLikeButtonElement buildLittleSkinOpenBrowserButton(LittleSkinDeviceAuthSnapshot deviceAuthorization) {
+        return VanillaLikeButtonElement.builder(
+                        button -> openLittleSkinVerificationPage(deviceAuthorization)
+                )
+                .colorTheme(VanillaLikeAbstractButton.ColorTheme.BLUE)
+                .text(new FizzyComponentElement.Builder()
+                        .addText(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.browser.button"))
+                        .align(TextRenderer.Align.CENTER)
+                        .shadow(true)
+                        .wrap(false)
+                        .autoEllipsis(true)
+                        .build())
+                .tooltip(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.browser.tooltip"))
+                .narration(Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.browser.narration"))
                 .build();
     }
 
@@ -567,6 +880,90 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
                 .tooltip(Component.translatable("screen.ltsxassistant.skin_workbench.page.localskin.upload.tooltip"))
                 .narration(Component.translatable("screen.ltsxassistant.skin_workbench.page.localskin.upload.narration"))
                 .build();
+    }
+
+    private static Component littleSkinStatusMessage(LittleSkinAccountSnapshot snapshot, String fallbackKey) {
+        String status = snapshot.statusMessage();
+        if (status != null && !status.isBlank()) {
+            return Component.literal(status);
+        }
+        return Component.translatable(fallbackKey);
+    }
+
+    private static Component littleSkinErrorMessage(LittleSkinAccountSnapshot snapshot) {
+        String status = snapshot.statusMessage();
+        String error = snapshot.errorMessage();
+        if ((status == null || status.isBlank()) && (error == null || error.isBlank())) {
+            return Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.error");
+        }
+        if (status == null || status.isBlank()) {
+            return Component.literal(error);
+        }
+        if (error == null || error.isBlank()) {
+            return Component.literal(status);
+        }
+        return Component.literal(status + "\n" + error);
+    }
+
+    private static Component littleSkinAuthStatusMessage(LittleSkinAccountSnapshot snapshot) {
+        String status = snapshot.statusMessage();
+        String error = snapshot.errorMessage();
+        if (status == null || status.isBlank()) {
+            status = Component.translatable("screen.ltsxassistant.skin_workbench.page.littleskin.auth.hint").getString();
+        }
+        if (error == null || error.isBlank()) {
+            return Component.literal(status);
+        }
+        return Component.literal(status + "\n" + error);
+    }
+
+    private static String resolveClosetDisplayName(LittleSkinClosetItemSummary item) {
+        if (item == null) {
+            return "";
+        }
+        if (!item.displayName().isBlank()) {
+            return item.displayName();
+        }
+        if (!item.textureId().isBlank()) {
+            return "Texture #" + item.textureId();
+        }
+        return "Unnamed LittleSkin Closet Item";
+    }
+
+    private static String resolveClosetMetaLine(LittleSkinClosetItemSummary item) {
+        String type = item == null ? "" : item.textureType();
+        return "Type: " + (type == null || type.isBlank() ? "unknown" : type);
+    }
+
+    private static String resolveClosetIdLine(LittleSkinClosetItemSummary item) {
+        if (item == null) {
+            return "";
+        }
+        return "Texture ID: " + item.textureId();
+    }
+
+    private static void openLittleSkinVerificationPage(LittleSkinDeviceAuthSnapshot deviceAuthorization) {
+        if (deviceAuthorization == null) {
+            return;
+        }
+        String uri = deviceAuthorization.verificationUriComplete();
+        if (uri == null || uri.isBlank()) {
+            uri = deviceAuthorization.verificationUri();
+        }
+        if (uri == null || uri.isBlank()) {
+            return;
+        }
+        Util.getPlatform().openUri(uri);
+    }
+
+    private static LittleSkinAccountSnapshot currentLittleSkinSnapshot() {
+        return littleSkinService()
+                .map(LittleSkinAccountServiceApi::snapshot)
+                .orElseGet(LittleSkinAccountSnapshot::disconnected);
+    }
+
+    private static java.util.Optional<LittleSkinAccountServiceApi> littleSkinService() {
+        return CoreServices.getOptional(LittleSkinAccountServiceApi.class);
     }
 
     private static int currentWidth() {
@@ -604,6 +1001,8 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
         private static final int PANEL_PADDING_MAX_PX = 16;
         private static final int PAGE_SIDE_PADDING_PX = 12;
         private static final int PAGE_TEXT_MAX_HEIGHT_PX = 56;
+        private static final int PAGE_STATUS_MAX_HEIGHT_PX = 72;
+        private static final int PAGE_SECTION_GAP_PX = 8;
         private static final int PAGE_TEXT_BUTTON_GAP_PX = 10;
         private static final int PAGE_BUTTON_HEIGHT_PX = 20;
         private static final int PAGE_BUTTON_MIN_WIDTH_PX = 130;
@@ -637,6 +1036,9 @@ public final class SkinWorkbenchScreen extends FizzyScreenHost {
         private static final int CELL_BUTTON_SIZE_PX = 20;
         private static final int CELL_BUTTON_MARGIN_PX = 2;
         private static final int CELL_BUTTON_SAFE_GAP_PX = 5;
+        private static final int CLOSET_CARD_HEIGHT_PX = 68;
+        private static final int CLOSET_CARD_SIDE_PADDING_PX = 10;
+        private static final int CLOSET_CARD_TOP_PADDING_PX = 8;
 
         private LayoutConfig() {
         }

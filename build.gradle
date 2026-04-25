@@ -1,6 +1,7 @@
 plugins {
     id 'base'
     id 'net.neoforged.moddev' version '2.0.140' apply false
+//    id 'org.jetbrains.kotlin.jvm' version '2.2.20'
 }
 
 description = 'LTSX Neo workspace (ModDevGradle modules)'
@@ -72,6 +73,11 @@ def addBotwmcsRepository = { repos ->
     repos.maven {
         url "https://maven.su5ed.dev/releases"
     }
+    repos.maven {
+        name = 'Kotlin for Forge'
+        url = 'https://thedarkcolour.github.io/KotlinForForge/'
+    }
+
 }
 
 ext.unifiedImplementationDeps = [
