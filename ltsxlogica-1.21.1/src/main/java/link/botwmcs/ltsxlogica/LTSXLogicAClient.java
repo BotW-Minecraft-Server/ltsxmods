@@ -27,6 +27,8 @@ public class LTSXLogicAClient {
     @SubscribeEvent
     static void onClientSetup(FMLClientSetupEvent event) {
         HeatClientFeature.init(NeoForge.EVENT_BUS);
+        NeoForge.EVENT_BUS.addListener((net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingOut logout) ->
+                link.botwmcs.ltsxlogica.mastery.client.MasteryClientAccess.reset());
 
         // Some client setup code
         LTSXLogicA.LOGGER.info("HELLO FROM CLIENT SETUP");

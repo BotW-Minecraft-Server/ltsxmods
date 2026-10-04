@@ -114,7 +114,8 @@ configurations {
 }
 
 dependencies {
-    jarJar(implementation("com.github.luben:zstd-jni:1.+"))
+    // Newer multi-release jars expose Java 22 packages that this NeoForge loader cannot load.
+    jarJar(implementation("com.github.luben:zstd-jni:1.5.6-9"))
     api("link.botwmcs.fizzy:fizzy:${fizzy_version}")
     api("net.luckperms:api:5.4")
     api(files(rootProject.file("libs/CustomSkinLoader_Universal-14.28.jar")))

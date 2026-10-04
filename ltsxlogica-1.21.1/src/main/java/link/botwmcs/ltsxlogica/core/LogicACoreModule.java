@@ -8,6 +8,12 @@ import link.botwmcs.ltsxlogica.LTSXLogicA;
 import link.botwmcs.ltsxlogica.api.heat.IHeatService;
 import link.botwmcs.ltsxlogica.heat.HeatFeature;
 import link.botwmcs.ltsxlogica.heat.service.HeatServiceImpl;
+import link.botwmcs.ltsxlogica.api.mastery.IMasteryRegistry;
+import link.botwmcs.ltsxlogica.api.mastery.IMasteryService;
+import link.botwmcs.ltsxlogica.api.mastery.IRuneService;
+import link.botwmcs.ltsxlogica.api.mastery.IPlayerStatisticsService;
+import link.botwmcs.ltsxlogica.mastery.MasteryFeature;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.network.chat.Component;
 
 /**
@@ -31,7 +37,13 @@ public final class LogicACoreModule implements ICoreModule {
     public void onRegister(CoreModuleContext ctx) {
         HeatFeature.init(ctx.modBus(), ctx.neoForgeBus());
         CoreServices.registerIfAbsent(IHeatService.class, new HeatServiceImpl());
-        ctx.logger().info("{}Registered heat feature and IHeatService bridge.", LOG_PREFIX);
+        MasteryFeature.init(ctx.neoForgeBus());
+        var mastery = MasteryFeature.manager();
+        CoreServices.registerIfAbsent(IMasteryRegistry.class, mastery.registry());
+        CoreServices.registerIfAbsent(IMasteryService.class, mastery);
+        CoreServices.registerIfAbsent(IRuneService.class, mastery);
+        CoreServices.registerIfAbsent(IPlayerStatisticsService.class, mastery);
+        ctx.logger().info("{}Registered heat and mastery features and service bridges.", LOG_PREFIX);
     }
 
     @Override
@@ -40,12 +52,25 @@ public final class LogicACoreModule implements ICoreModule {
                 "logica",
                 Component.literal("Logic A Modules"),
                 Component.literal("LTSX Logic A"),
-                logica -> logica.menu(
+                logica -> {
+                    logica.action("mastery", Component.literal("Open mastery rune application"), context -> {
+                        MasteryFeature.manager().openApplicationScreen(context.getSource().getPlayerOrException());
+                        return 1;
+                    });
+                    logica.action("rune", Component.literal("Give an Efficiency I rune (operator testing)"),
+                            source -> source.hasPermission(2), context -> {
+                        var player = context.getSource().getPlayerOrException();
+                        var item = MasteryFeature.manager().createRune(ResourceLocation.parse("ltsxlogica:efficiency_i"));
+                        if (!player.getInventory().add(item)) player.drop(item, false);
+                        return 1;
+                    });
+                    logica.menu(
                         "heat",
                         Component.literal("Heat Module"),
                         heat -> {
                         }
-                )
+                    );
+                }
         );
     }
 }

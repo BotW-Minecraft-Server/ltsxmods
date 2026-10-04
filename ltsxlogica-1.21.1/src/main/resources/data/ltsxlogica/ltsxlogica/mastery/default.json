@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "masteries": {
+    "ltsxlogica:miners": {
+      "name": "Miners",
+      "allowed_series": ["ltsxlogica:mining"],
+      "stages": [{"from": 2, "to": 100, "conditions": [{
+        "statistic": {"type": "minecraft:mined", "all": true},
+        "operator": ">=", "value": {"per_level": 25, "level_offset": -1, "power": 2}
+      }]}]
+    },
+    "ltsxlogica:chief": {
+      "name": "Chief",
+      "allowed_series": ["ltsxlogica:cooking"],
+      "stages": [{"from": 2, "to": 100, "conditions": [{
+        "statistic": {"type": "minecraft:crafted", "tag": "ltsxlogica:mastery_foods"},
+        "operator": ">=", "value": {"per_level": 25, "level_offset": -1, "power": 2}
+      }]}]
+    },
+    "ltsxlogica:fisher": {
+      "name": "Fisher",
+      "allowed_series": ["ltsxlogica:fishing"],
+      "stages": [{"from": 2, "to": 100, "conditions": [{
+        "statistic": {"type": "minecraft:custom", "ids": ["minecraft:fish_caught"]},
+        "operator": ">=", "value": {"per_level": 10, "level_offset": -1, "power": 2}
+      }]}]
+    },
+    "ltsxlogica:knight": {
+      "name": "Knight",
+      "allowed_series": ["ltsxlogica:combat"],
+      "stages": [{"from": 2, "to": 100, "conditions": [{
+        "statistic": {"type": "minecraft:killed", "tag": "ltsxlogica:mastery_hostile"},
+        "operator": ">=", "value": {"per_level": 10, "level_offset": -1, "power": 2}
+      }]}]
+    }
+  },
+  "runes": {
+    "ltsxlogica:efficiency_i": {
+      "name": "Efficiency I",
+      "series": ["ltsxlogica:mining"],
+      "required_level": 2,
+      "enchantment": "minecraft:efficiency",
+      "enchantment_level": 1
+    }
+  }
+}
